@@ -251,6 +251,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
         to_die = np.random.choice([True,False], p=(var["dauer_die"],1-var["dauer_die"]), size=len(new_dauer))
         new_dauer = new_dauer[to_die]
         if len(new_dauer) > 0:
+            df[new_dauer,p2i["dauer"]] = var["dauer_age"]
             df[new_dauer,p2i["alive"]] = 0
             df[new_dauer,p2i["decision"]] = 0
     
@@ -269,6 +270,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
         to_die = np.random.choice([True,False], p=(var["dauer_die"],1-var["dauer_die"]), size=len(which_one))
         which_one = which_one[to_die]
         if len(which_one) > 0:
+            df[which_one,p2i["dauer"]] = var["dauer_age"]
             df[which_one,p2i["alive"]] = 0
             df[which_one,p2i["decision"]] = 0
     
