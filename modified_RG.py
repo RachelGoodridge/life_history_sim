@@ -207,15 +207,14 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
     if len(L1) > 0:
         # pull out gene values
         dauer_val = (df[L1,p2i["dauer_1"]] + df[L1,p2i["dauer_2"]])/2
-        smell_val = (df[L1,p2i["smell_1"]] + df[L1,p2i["smell_2"]])/2
         # find surrounding pheromones
         phers = north[:,:,grid_dim["pher"]] + south[:,:,grid_dim["pher"]] + west[:,:,grid_dim["pher"]] + east[:,:,grid_dim["pher"]] + grid[:,:,grid_dim["pher"]]
         pher_loc = np.ravel(phers, order="F")[df[L1, p2i["loc"]].astype(int)]
-        pher_loc[(pher_loc > var["pher_max"])] = var["pher_max"]
+        pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         # calculate probability based on dauer gene and time spent in L1
         prob = 1/(1 + np.exp(dauer_val - df[L1,p2i["L1"]]))
-        # smell gene*above prob + (1- smell gene)*pheromone fraction
-        new_prob = smell_val*prob + (1-smell_val)*pher_loc/var["pher_max"]
+        # 0.5*above prob + 0.5*pheromone fraction
+        new_prob = 0.5*prob + 0.5*pher_loc/var["pher_max"]
         probs = np.c_[new_prob,1-new_prob]
         # choice of L2 or L2d based on probs, applied to all worms
         new_stage = np.apply_along_axis(lambda x:np.random.choice([s2i["L2d"],s2i["L2"]],p=x),1,probs)
@@ -229,53 +228,65 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
     if len(L2d) > 0:
         # pull out gene values
         dauer_val = (df[L2d,p2i["dauer_1"]] + df[L2d,p2i["dauer_2"]])/2
-        smell_val = (df[L2d,p2i["smell_1"]] + df[L2d,p2i["smell_2"]])/2
         # find surrounding pheromones
         phers = north[:,:,grid_dim["pher"]] + south[:,:,grid_dim["pher"]] + west[:,:,grid_dim["pher"]] + east[:,:,grid_dim["pher"]] + grid[:,:,grid_dim["pher"]]
         pher_loc = np.ravel(phers, order="F")[df[L2d, p2i["loc"]].astype(int)]
-        pher_loc[(pher_loc > var["pher_max"])] = var["pher_max"]
+        pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         # calculate probability based on dauer gene and time spent in L2d
         prob = 1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))
-        # smell gene*above prob + (1- smell gene)*pheromone fraction
-        new_prob = smell_val*prob + (1-smell_val)*pher_loc/var["pher_max"]
+        # 0.5*above prob + 0.5*pheromone fraction
+        new_prob = 0.5*prob + 0.5*pher_loc/var["pher_max"]
         probs = np.c_[new_prob,1-new_prob]
         # choice of L3 or dauer based on probs, applied to all worms
         new_stage = np.apply_along_axis(lambda x:np.random.choice([s2i["dauer"],s2i["L3"]],p=x),1,probs)
         df[L2d,p2i["stage"]] = new_stage
         df[L2d,p2i["food_count"]] = var["grow_time"][s2i["L2"]]
         # if energy is more than certain amount, reset it
-        L2d = L2d[df[L2d,p2i["energy"]] > (var["energy"]*var["energy_used"][s2i["L3"]])]
-        df[L2d,p2i["energy"]] = var["energy"]*var["energy_used"][s2i["L3"]]
+        reset = L2d[df[L2d,p2i["energy"]] > (var["energy"]*var["energy_used"][s2i["L3"]])]
+        df[reset,p2i["energy"]] = var["energy"]*var["energy_used"][s2i["L3"]]
+        # find the ones that went into dauer and determine if they will survive
+        new_dauer = L2d[df[L2d,p2i["stage"]]==s2i["dauer"]]
+        to_die = np.random.choice([True,False], p=(var["dauer_die"],1-var["dauer_die"]), size=len(new_dauer))
+        new_dauer = new_dauer[to_die]
+        if len(new_dauer) > 0:
+            df[new_dauer,p2i["alive"]] = 0
+            df[new_dauer,p2i["decision"]] = 0
     
     # cutoff L2d worms that have not eaten enough food to transition
     L2d = alive[(df[alive,p2i["stage"]]==s2i["L2d"])]
     if len(L2d) > 0:
         # worms that have spent too long in L2d must go into dauer
         dauer_val = (df[L2d,p2i["dauer_1"]] + df[L2d,p2i["dauer_2"]])/2
-        which_one = L2d[((1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))) > var["L2d_cutoff"])]
+        which_one = L2d[((1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))) >= var["L2d_cutoff"])]
         df[which_one,p2i["stage"]] = s2i["dauer"]
         # reset the food_count and the energy
         df[which_one,p2i["food_count"]] = var["grow_time"][s2i["L2"]]
-        which_one = which_one[df[which_one,p2i["energy"]] > (var["energy"]*var["energy_used"][s2i["L3"]])]
-        df[which_one,p2i["energy"]] = var["energy"]*var["energy_used"][s2i["L3"]]
+        reset = which_one[df[which_one,p2i["energy"]] > (var["energy"]*var["energy_used"][s2i["L3"]])]
+        df[reset,p2i["energy"]] = var["energy"]*var["energy_used"][s2i["L3"]]
+        # determine if the dauer worms will survive
+        to_die = np.random.choice([True,False], p=(var["dauer_die"],1-var["dauer_die"]), size=len(which_one))
+        which_one = which_one[to_die]
+        if len(which_one) > 0:
+            df[which_one,p2i["alive"]] = 0
+            df[which_one,p2i["decision"]] = 0
     
     # choice to come out of dauer or not
+    alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     dauer = alive[((df[alive,p2i["stage"]]==s2i["dauer"]) & (df[alive,p2i["food_count"]]>=var["grow_time"][s2i["dauer"]]))]
     if len(dauer) > 0:
-        # pull out gene values
-        dauer_val = (df[dauer,p2i["dauer_1"]] + df[dauer,p2i["dauer_2"]])/2
-        smell_val = (df[dauer,p2i["smell_1"]] + df[dauer,p2i["smell_2"]])/2
+        # find food at dauer location
+        food = grid[:,:,grid_dim["food"]]
+        food_loc = np.ravel(food, order="F")[df[dauer, p2i["loc"]].astype(int)]
+        food_loc[food_loc > var["food_max"]] = var["food_max"]
         # find surrounding pheromones
         phers = north[:,:,grid_dim["pher"]] + south[:,:,grid_dim["pher"]] + west[:,:,grid_dim["pher"]] + east[:,:,grid_dim["pher"]] + grid[:,:,grid_dim["pher"]]
         pher_loc = np.ravel(phers, order="F")[df[dauer, p2i["loc"]].astype(int)]
-        pher_loc[(pher_loc > var["pher_max"])] = var["pher_max"]
-        # calculate probability based on dauer gene and time spent in L2d
-        prob = 1/(1 + np.exp(dauer_val - df[dauer,p2i["L2d"]]))
-        # smell gene*above prob + (1- smell gene)*pheromone fraction
-        new_prob = smell_val*prob + (1-smell_val)*pher_loc/var["pher_max"]
-        probs = np.c_[new_prob,1-new_prob]
+        pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
+        # chance of staying in dauer is 0.5*(1-food) + 0.5*pher
+        dauer_prob = 0.5*(1-food_loc/var["food_max"]) + 0.5*pher_loc/var["pher_max"]
+        probs = np.c_[dauer_prob, 1-dauer_prob]
         # choice of staying in dauer or coming out based on probs, applied to all worms
-        new_stage = np.apply_along_axis(lambda x:np.random.choice([s2i["dauer"],s2i["L4"]],p=x),1,probs)
+        new_stage = np.apply_along_axis(lambda x: np.random.choice([s2i["dauer"],s2i["L4"]],p=x),1,probs)
         df[dauer,p2i["stage"]] = new_stage
         # find all the ones that transitioned out of dauer and reset food count
         dauer = dauer[df[dauer,p2i["stage"]]==s2i["L4"]]
@@ -555,13 +566,13 @@ def decide(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
         food_loc = np.ravel(food, order="F")[df[not_egg, p2i["loc"]].astype(int)]
         food_loc[food_loc > var["food_max"]] = var["food_max"]
         pher_loc = np.ravel(phers, order="F")[df[not_egg, p2i["loc"]].astype(int)]
+        pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         smell_gene = (df[not_egg,p2i["smell_1"]] + df[not_egg,p2i["smell_2"]])/2
         
         # must move if no food, chance of moving otherwise is smell*(1-food) + (1-smell)*pher
         move_conditions = np.c_[(food_loc<1),
-                                (pher_loc>var["pher_max"])*(smell_gene*(1-food_loc/var["food_max"])+(1-smell_gene)),
                                 smell_gene*(1-food_loc/var["food_max"]) + (1-smell_gene)*pher_loc/var["pher_max"]]
-        move_prob = np.apply_along_axis(lambda row: row[0] if row[0] else row[1] if row[1] else row[2], 1, move_conditions)
+        move_prob = np.apply_along_axis(lambda row: row[0] if row[0] else row[1], 1, move_conditions)
         move_probs = np.c_[move_prob, 1-move_prob]
         decision = np.apply_along_axis(lambda row: np.random.choice([True,False], p=[row[0],row[1]]), 1, move_probs)
         df[not_egg, p2i["decision"]] = decision
@@ -569,13 +580,13 @@ def decide(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
 
 # Run the Program
 def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, food_max=2000, seed=30,
-        food_growth=[0.1,0], pher_decay=-0.5, pop_size=1000, energy=5, pher_max=150, genes=10, eggs=(1/12),
+        food_growth=[0.1,0], pher_decay=-0.5, pop_size=200, energy=5, pher_max=500, genes=10, eggs=(1/12),
         grow_time=[18,33,51,63,87,111,183,2103,3639], dauer_weight=0.5, food_eaten=[0,1,2,2,4,4,8,16,8],
-        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=np.arange(20,35), num_patches=8,
+        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[9,35], num_patches=8,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.02, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.9, pop_max=1000000):
+        dauer_age=2880, L2d_cutoff=0.9, pop_max=1000000, dauer_die=0.95):
     
     if dictionary:
         all_dict = dictionary
@@ -595,7 +606,8 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
                "genders_prob":genders_prob, "smell_gene":smell_gene, "gender_prob":genders_prob[gender_prob],
                "energy_used":energy_used, "food_repop":food_repop, "grid_len":(food_len + space_between)*patches,
                "num_patches":num_patches, "sperm_bias":sperm_bias, "data":0, "iter":0, "seed":seed, "save":save,
-               "food_amp":food_amp, "food_freq":food_freq, "dauer_age":dauer_age, "L2d_cutoff":L2d_cutoff}
+               "food_amp":food_amp, "food_freq":food_freq, "dauer_age":dauer_age, "L2d_cutoff":L2d_cutoff,
+               "dauer_die":dauer_die}
         
         # start off the random number generator
         np.random.seed(var["seed"])
@@ -655,8 +667,8 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         df[:var["pop_size"],p2i["y_loc"]]=np.random.choice(range(var["food_len"]),size=var["pop_size"]) + worm_patch[:,1]
         df[:var["pop_size"],p2i["loc"]]=np.ravel_multi_index([df[:var["pop_size"],p2i["x_loc"]].astype(int),df[:var["pop_size"],p2i["y_loc"]].astype(int)],grid.shape[:2],order="F")
         df[:,p2i["energy"]]=var["energy"]*var["energy_used"][s2i["L1"]]
-        df[:var["pop_size"],p2i["dauer_1"]]=np.random.choice(var["dauer_gene"],size=var["pop_size"])
-        df[:var["pop_size"],p2i["dauer_2"]]=np.random.choice(var["dauer_gene"],size=var["pop_size"])
+        df[:var["pop_size"],p2i["dauer_1"]]=np.random.uniform(var["dauer_gene"][0],var["dauer_gene"][1],var["pop_size"])
+        df[:var["pop_size"],p2i["dauer_2"]]=np.random.uniform(var["dauer_gene"][0],var["dauer_gene"][1],var["pop_size"])
         new_smell_1 = np.random.normal(var["smell_gene"][0],var["smell_gene"][1],size=var["pop_size"])
         new_smell_1[new_smell_1 > 1] = 1
         new_smell_1[new_smell_1 < 0] = 0
