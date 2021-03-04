@@ -586,11 +586,11 @@ def decide(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
 def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, food_max=2000, seed=30,
         food_growth=[0.1,0], pher_decay=-0.5, pop_size=200, energy=5, pher_max=500, genes=10, eggs=(1/12),
         grow_time=[18,33,51,63,87,111,183,2103,3639], dauer_weight=0.5, food_eaten=[0,1,2,2,4,4,8,16,8],
-        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[9,35], num_patches=8,
+        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=8,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.02, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.9, pop_max=1000000, dauer_die=0.95):
+        dauer_age=2880, L2d_cutoff=0.9, pop_max=1000000, dauer_die=0.97):
     
     if dictionary:
         all_dict = dictionary
@@ -763,6 +763,24 @@ def prob_move(var):
     plt.xlabel("Amount of Food")
     plt.ylabel("Amount of Pheromones")
     plt.axis([0,var["food_max"],0,var["pher_max"]])
+    plt.colorbar(ticks=np.arange(0,1.1,0.1))
+
+# Graph the Probability of Going into Dauer
+def prob_dauer(var, time_spent=16):
+    # assumptions: the amount of time spent in L2d is 16 hours which is roughly average
+    x, y = np.mgrid[slice(var["dauer_gene"][0],var["dauer_gene"][1]+0.25,0.25), slice(0,var["pher_max"]+1)]
+    x_num = (var["dauer_gene"][1]-var["dauer_gene"][0])*4+1
+    z = np.zeros((x_num,var["pher_max"]+1))
+    for i,k in zip(np.arange(var["dauer_gene"][0],var["dauer_gene"][1]+0.25,0.25),range(x_num)):
+        for j in range(var["pher_max"]+1):
+            prob = 1/(1 + np.exp(i - time_spent))
+            z[k,j] = 0.5*prob + 0.5*j/var["pher_max"]
+    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
+    plt.axvline(x=time_spent, color="black")
+    plt.title("Probability of Going into Dauer")
+    plt.xlabel("Initial Dauer Gene Values")
+    plt.ylabel("Amount of Pheromones")
+    plt.axis([var["dauer_gene"][0],var["dauer_gene"][1],0,var["pher_max"]])
     plt.colorbar(ticks=np.arange(0,1.1,0.1))
 
 # How Many Worms per Gender
@@ -1034,13 +1052,11 @@ def frac_dauer_gene(p2i, df, var):
                 except:
                     fraction_dauer[i] = np.nan
         
-            if np.any(np.array(fraction_dauer)[~np.isnan(np.array(fraction_dauer))] != 0):
-                # only plot the genes that have fractions != 0
-                plt.plot(range(max_time), fraction_dauer, label=j)
+            plt.plot(range(max_time), fraction_dauer, label=j)
         
         plt.xlabel("Maximum Hours Spent in L2d Before Deciding")
         plt.ylabel("Fraction of Worms that Went into Dauer")
-        plt.legend(title="Genes")
+        plt.legend(title="Genes", bbox_to_anchor=(1,1))
 
 # Graph the Winning Genetic Lines in Each Square
 def genetic_line_map(var, df, p2i):
