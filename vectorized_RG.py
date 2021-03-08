@@ -214,7 +214,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
         pher_loc = np.ravel(phers, order="F")[df[L1, p2i["loc"]].astype(int)]
         pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         # calculate probability based on dauer gene and time spent in L1
-        prob = 1/(1 + np.exp(dauer_val - df[L1,p2i["L1"]]))
+        prob = 1/(1 + np.exp((dauer_val - df[L1,p2i["L1"]])/var["gp_map"]))
         # 0.5*above prob + 0.5*pheromone fraction
         new_prob = 0.5*prob + 0.5*pher_loc/var["pher_max"]
         probs = np.c_[new_prob,1-new_prob]
@@ -235,7 +235,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
         pher_loc = np.ravel(phers, order="F")[df[L2d, p2i["loc"]].astype(int)]
         pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         # calculate probability based on dauer gene and time spent in L2d
-        prob = 1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))
+        prob = 1/(1 + np.exp((dauer_val - df[L2d,p2i["L2d"]])/var["gp_map"]))
         # 0.5*above prob + 0.5*pheromone fraction
         new_prob = 0.5*prob + 0.5*pher_loc/var["pher_max"]
         probs = np.c_[new_prob,1-new_prob]
@@ -260,7 +260,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
     if len(L2d) > 0:
         # worms that have spent too long in L2d must go into dauer
         dauer_val = (df[L2d,p2i["dauer_1"]] + df[L2d,p2i["dauer_2"]])/2
-        which_one = L2d[((1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))) >= var["L2d_cutoff"])]
+        which_one = L2d[((1/(1 + np.exp((dauer_val - df[L2d,p2i["L2d"]])/var["gp_map"]))) >= var["L2d_cutoff"])]
         df[which_one,p2i["stage"]] = s2i["dauer"]
         # reset the food_count and the energy
         df[which_one,p2i["food_count"]] = var["grow_time"][s2i["L2"]]
@@ -586,11 +586,11 @@ def decide(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
 def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, food_max=2000, seed=30,
         food_growth=[0.1,0], pher_decay=-0.5, pop_size=200, energy=5, pher_max=500, genes=10, eggs=(1/12),
         grow_time=[18,33,51,63,87,111,183,2103,3639], dauer_weight=0.5, food_eaten=[0,1,2,2,4,4,8,16,8],
-        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=8,
+        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=10,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
-        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.02, dictionary=False,
+        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.015, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.9, pop_max=1000000, dauer_die=0.97):
+        dauer_age=2880, L2d_cutoff=0.92, pop_max=1000000, dauer_die=0.97, gp_map=3):
     
     if dictionary:
         all_dict = dictionary
@@ -611,7 +611,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
                "energy_used":energy_used, "food_repop":food_repop, "grid_len":(food_len + space_between)*patches,
                "num_patches":num_patches, "sperm_bias":sperm_bias, "data":0, "iter":0, "seed":seed, "save":save,
                "food_amp":food_amp, "food_freq":food_freq, "dauer_age":dauer_age, "L2d_cutoff":L2d_cutoff,
-               "dauer_die":dauer_die}
+               "dauer_die":dauer_die, "gp_map":gp_map}
         
         # start off the random number generator
         np.random.seed(var["seed"])
@@ -747,7 +747,7 @@ def pher_map(grid, var, grid_dim):
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
     plt.axis([0,var["grid_len"],0,var["grid_len"]])
-    plt.colorbar()  
+    plt.colorbar()
 
 # Graph the Probability of Traveling
 def prob_move(var):
@@ -766,17 +766,17 @@ def prob_move(var):
     plt.colorbar(ticks=np.arange(0,1.1,0.1))
 
 # Graph the Probability of Going into Dauer
-def prob_dauer(var, time_spent=16):
-    # assumptions: the amount of time spent in L2d is 16 hours which is roughly average
+def prob_dauer(var, time_spent):
     x, y = np.mgrid[slice(var["dauer_gene"][0],var["dauer_gene"][1]+0.25,0.25), slice(0,var["pher_max"]+1)]
     x_num = (var["dauer_gene"][1]-var["dauer_gene"][0])*4+1
     z = np.zeros((x_num,var["pher_max"]+1))
     for i,k in zip(np.arange(var["dauer_gene"][0],var["dauer_gene"][1]+0.25,0.25),range(x_num)):
         for j in range(var["pher_max"]+1):
-            prob = 1/(1 + np.exp(i - time_spent))
+            prob = 1/(1 + np.exp((i - time_spent)/var["gp_map"]))
             z[k,j] = 0.5*prob + 0.5*j/var["pher_max"]
     plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
     plt.axvline(x=time_spent, color="black")
+    plt.text(time_spent-1.5,var["pher_max"]/2-50,"time spent",rotation=90)
     plt.title("Probability of Going into Dauer")
     plt.xlabel("Initial Dauer Gene Values")
     plt.ylabel("Amount of Pheromones")
@@ -909,10 +909,12 @@ def stage_time(stage, p2i, df, var):
         plt.xticks([*range(1,9)], (stage[1:]))
         plt.title("Distribution of Time Spent Per Stage")
         plt.ylabel("Time Spent (hrs)")
+    
+    # return the L2d average value
+    return(averages[2])
 
 # Statistics for the Dauer Gene
-def stats_d(p2i, df):
-    # x axis limits include dauer genes from 8 - 36
+def stats_d(p2i, df, var, time_spent):
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     dauer_both = np.hstack((df[alive,p2i["dauer_1"]], df[alive,p2i["dauer_2"]]))
     dauer_avg = (df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2
@@ -921,9 +923,10 @@ def stats_d(p2i, df):
     plt.bar(sort_dauer_both[0], sort_dauer_both[1]/(2*len(alive)), color="blue", label="Allele Pool", alpha=0.5)
     plt.bar(sort_dauer_avg[0], sort_dauer_avg[1]/len(alive), color="red", label="Gene Expressed", alpha=0.5)
     plt.legend()
-    plt.xticks([11,33], ["more likely", "less likely"])
-    plt.xlim(36,8)
+    plt.xticks([var["dauer_gene"][0]+3,var["dauer_gene"][1]-2], ["more likely " + str(var["dauer_gene"][0]+3), "less likely " + str(var["dauer_gene"][1]-2)])
+    plt.xlim(var["dauer_gene"][0],var["dauer_gene"][1]+1)
     plt.ylim(0,1)
+    plt.axvline(x=time_spent, color="black")
     plt.title("L2d and Dauer Decision")
     plt.xlabel("Likelihood of L2d/Dauer")
     plt.ylabel("Fraction of Population")
@@ -1056,7 +1059,7 @@ def frac_dauer_gene(p2i, df, var):
         
         plt.xlabel("Maximum Hours Spent in L2d Before Deciding")
         plt.ylabel("Fraction of Worms that Went into Dauer")
-        plt.legend(title="Genes", bbox_to_anchor=(1,1))
+        plt.legend(title="Genes", bbox_to_anchor=(1,1), ncol=3)
 
 # Graph the Winning Genetic Lines in Each Square
 def genetic_line_map(var, df, p2i):
@@ -1086,13 +1089,16 @@ def dauer_line(df, p2i, s2i, var):
     genes = genes.flatten().astype(int)
     genes[genes%2==1] += 1
     genes = genes/2
-    print("Fraction of Worm Descendants in Dauer (only genetic lines with more than "
-          + str(int(np.max([len(alive)*0.01,2]))) + " living individuals)")
     for i in range(var["pop_size"]):
         indices = alive[genes==i]
         if len(indices) > np.max([len(alive)*0.01,2]):
             frac = np.sum(df[indices,p2i["stage"]]==s2i["dauer"])/len(indices)
-            print("Worm " + str(i) + " : " + str(frac))
+            plt.plot(i, frac, marker="o")
+            plt.text(i, frac, str(i))
+    plt.xlim(0,var["pop_size"])
+    plt.title("Genetic lines with more than " + str(int(np.max([len(alive)*0.01,2]))) + " living individuals")
+    plt.xlabel("Original Worm Number")
+    plt.ylabel("Fraction of Worm Descendants in Dauer")
 
 # Diversity Values of Each Square
 def diversity(var, df, p2i):
@@ -1171,7 +1177,6 @@ def clump(var, df, p2i):
     x_val = np.minimum(x_diff,(var["grid_len"]-x_diff))**2
     y_val = np.minimum(y_diff,(var["grid_len"]-y_diff))**2
     baseline = np.mean(np.sqrt(x_val + y_val))
-    
     f = sns.displot(lineage, kde=True)
     plt.axvline(x=baseline, color="gray")
     f.set_axis_labels("Average Distance Between Worms", "Number of Lineages")
@@ -1191,7 +1196,7 @@ def patch_repop(var):
     plt.ylabel("Chance of Patch Repopulation")
 
 # Average Value of Dauer Gene of Winning Lineage Over Time
-def dauer_over_time(save=[1,250,500,1000,1500,2000,5000,10000,20000,30000]):
+def dauer_over_time(var, time_spent, save):
     # load in data from the last time point
     file_name = "all_info_saved_iter_" + str(save[-1]) + ".p"
     old_file = open(file_name, "rb")
@@ -1236,12 +1241,14 @@ def dauer_over_time(save=[1,250,500,1000,1500,2000,5000,10000,20000,30000]):
         dauer_value.append(dauer)
     
     plt.plot(save, dauer_value, "-o")
+    plt.ylim(var["dauer_gene"][0],var["dauer_gene"][1]+1)
+    plt.axhline(y=time_spent, color="black")
     plt.title("Winning Lineage " + str(int(which)) + " Genetics Over Time")
     plt.xlabel("Time (hrs)")
     plt.ylabel("Average Value of Dauer Gene")
 
 # Average Value of Dauer Gene Over Time
-def all_dauer_over_time(save=[1,250,500,1000,1500,2000,5000,10000,20000,30000]):    
+def all_dauer_over_time(var, time_spent, save):    
     # loop through every time point
     dauer_value = []
     for i in save:
@@ -1261,6 +1268,8 @@ def all_dauer_over_time(save=[1,250,500,1000,1500,2000,5000,10000,20000,30000]):
         dauer_value.append(dauer)
     
     plt.plot(save, dauer_value, "-o")
+    plt.ylim(var["dauer_gene"][0],var["dauer_gene"][1]+1)
+    plt.axhline(y=time_spent, color="black")
     plt.title("Genetics Over Time")
     plt.xlabel("Time (hrs)")
     plt.ylabel("Average Value of Dauer Gene")

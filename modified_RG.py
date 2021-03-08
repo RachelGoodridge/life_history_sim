@@ -212,7 +212,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
         pher_loc = np.ravel(phers, order="F")[df[L1, p2i["loc"]].astype(int)]
         pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         # calculate probability based on dauer gene and time spent in L1
-        prob = 1/(1 + np.exp(dauer_val - df[L1,p2i["L1"]]))
+        prob = 1/(1 + np.exp((dauer_val - df[L1,p2i["L1"]])/var["gp_map"]))
         # 0.5*above prob + 0.5*pheromone fraction
         new_prob = 0.5*prob + 0.5*pher_loc/var["pher_max"]
         probs = np.c_[new_prob,1-new_prob]
@@ -233,7 +233,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
         pher_loc = np.ravel(phers, order="F")[df[L2d, p2i["loc"]].astype(int)]
         pher_loc[pher_loc > var["pher_max"]] = var["pher_max"]
         # calculate probability based on dauer gene and time spent in L2d
-        prob = 1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))
+        prob = 1/(1 + np.exp((dauer_val - df[L2d,p2i["L2d"]])/var["gp_map"]))
         # 0.5*above prob + 0.5*pheromone fraction
         new_prob = 0.5*prob + 0.5*pher_loc/var["pher_max"]
         probs = np.c_[new_prob,1-new_prob]
@@ -258,7 +258,7 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
     if len(L2d) > 0:
         # worms that have spent too long in L2d must go into dauer
         dauer_val = (df[L2d,p2i["dauer_1"]] + df[L2d,p2i["dauer_2"]])/2
-        which_one = L2d[((1/(1 + np.exp(dauer_val - df[L2d,p2i["L2d"]]))) >= var["L2d_cutoff"])]
+        which_one = L2d[((1/(1 + np.exp((dauer_val - df[L2d,p2i["L2d"]])/var["gp_map"]))) >= var["L2d_cutoff"])]
         df[which_one,p2i["stage"]] = s2i["dauer"]
         # reset the food_count and the energy
         df[which_one,p2i["food_count"]] = var["grow_time"][s2i["L2"]]
@@ -584,11 +584,11 @@ def decide(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
 def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, food_max=2000, seed=30,
         food_growth=[0.1,0], pher_decay=-0.5, pop_size=200, energy=5, pher_max=500, genes=10, eggs=(1/12),
         grow_time=[18,33,51,63,87,111,183,2103,3639], dauer_weight=0.5, food_eaten=[0,1,2,2,4,4,8,16,8],
-        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=8,
+        smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=10,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
-        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.02, dictionary=False,
+        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.015, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.9, pop_max=1000000, dauer_die=0.97):
+        dauer_age=2880, L2d_cutoff=0.92, pop_max=1000000, dauer_die=0.97, gp_map=3):
     
     if dictionary:
         all_dict = dictionary
@@ -609,7 +609,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
                "energy_used":energy_used, "food_repop":food_repop, "grid_len":(food_len + space_between)*patches,
                "num_patches":num_patches, "sperm_bias":sperm_bias, "data":0, "iter":0, "seed":seed, "save":save,
                "food_amp":food_amp, "food_freq":food_freq, "dauer_age":dauer_age, "L2d_cutoff":L2d_cutoff,
-               "dauer_die":dauer_die}
+               "dauer_die":dauer_die, "gp_map":gp_map}
         
         # start off the random number generator
         np.random.seed(var["seed"])
