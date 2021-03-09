@@ -586,9 +586,9 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         grow_time=[18,33,51,63,87,111,183,2103,3639], dauer_weight=0.5, food_eaten=[0,1,2,2,4,4,8,16,8],
         smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=10,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
-        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.015, dictionary=False,
+        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.92, pop_max=1000000, dauer_die=0.97, gp_map=3):
+        dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.97, gp_map=3):
     
     if dictionary:
         all_dict = dictionary

@@ -588,9 +588,9 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         grow_time=[18,33,51,63,87,111,183,2103,3639], dauer_weight=0.5, food_eaten=[0,1,2,2,4,4,8,16,8],
         smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=10,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
-        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.015, dictionary=False,
+        gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.92, pop_max=1000000, dauer_die=0.97, gp_map=3):
+        dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.97, gp_map=3):
     
     if dictionary:
         all_dict = dictionary
@@ -774,9 +774,11 @@ def prob_dauer(var, time_spent):
         for j in range(var["pher_max"]+1):
             prob = 1/(1 + np.exp((i - time_spent)/var["gp_map"]))
             z[k,j] = 0.5*prob + 0.5*j/var["pher_max"]
-    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
+    z[z >= var["L2d_cutoff"]] = 1
+    plt.pcolormesh(x, y, z, cmap="bwr", shading="auto")
     plt.axvline(x=time_spent, color="black")
     plt.text(time_spent-1.5,var["pher_max"]/2-50,"time spent",rotation=90)
+    plt.text(var["dauer_gene"][0]+2,var["pher_max"]-50,"cutoff")
     plt.title("Probability of Going into Dauer")
     plt.xlabel("Initial Dauer Gene Values")
     plt.ylabel("Amount of Pheromones")
@@ -1015,51 +1017,32 @@ def frac_dauer(p2i, df, var):
 # Fraction of Worms in Dauer by Genotype
 def frac_dauer_gene(p2i, df, var):
     # collect all worms from old files
-    combine = np.array([], dtype=np.int64).reshape(0,5)
+    combine = np.array([], dtype=np.int64).reshape(0,4)
     for i in range(var["data"]):
         file_name = "dead_worm_data_dump_" + str(i) + ".p"
         old_file = open(file_name, "rb")
         old_data = pickle.load(old_file)
         old_file.close()
-        old_data = old_data[:,[p2i["L2d"],p2i["L3"],p2i["dauer"],p2i["dauer_1"],p2i["dauer_2"]]]
+        old_data = old_data[:,[p2i["L3"],p2i["dauer"],p2i["dauer_1"],p2i["dauer_2"]]]
         combine = np.concatenate((combine, old_data))    
-    combine = np.concatenate((combine, df[:,[p2i["L2d"],p2i["L3"],p2i["dauer"],p2i["dauer_1"],p2i["dauer_2"]]]))
+    combine = np.concatenate((combine, df[:,[p2i["L3"],p2i["dauer"],p2i["dauer_1"],p2i["dauer_2"]]]))
     
     # which worms went into dauer vs. L3
-    dauer = np.array(np.where(combine[:, 2]>0))[0]
-    L3 = np.array(np.where(combine[:, 1]>0))[0]
-    if len(dauer)>0 or len(L3)>0:
-        dauer_gene = np.round((combine[dauer,3] + combine[dauer,4])/2).astype(int)
-        L3_gene = np.round((combine[L3,3] + combine[L3,4])/2).astype(int)
-        max_time = (max(max(combine[dauer, 0]), max(combine[L3, 0])) + 1).astype(int)
-        
-        for j in range(min(min(dauer_gene),min(L3_gene)), (max(max(dauer_gene),max(L3_gene))+1)):
-            temp_dauer = dauer[dauer_gene == j]
-            temp_L3 = L3[L3_gene == j]
+    dauer = np.array(np.where(combine[:, 1]>0))[0]
+    L3 = np.array(np.where(combine[:, 0]>0))[0]
     
-            # which worms decided to go into dauer at time step [index]
-            dauer_decision_time = [[] for i in range(max_time)]
-            for i in range(1,max_time):
-                dauer_decision_time[i] = temp_dauer[((combine[temp_dauer, 0]>=1) & (combine[temp_dauer, 0]<=i))]
-                
-            # which worms decided to go into L3 at time step [index]
-            L3_decision_time = [[] for i in range(max_time)]
-            for i in range(1,max_time):
-                L3_decision_time[i] = temp_L3[((combine[temp_L3, 0]>=1) & (combine[temp_L3, 0]<=i))]
-                
-            # what fraction of worms went into dauer at each time step
-            fraction_dauer = [[] for i in range(max_time)]
-            for i in range(max_time):
-                try:
-                    fraction_dauer[i] = len(dauer_decision_time[i]) / (len(dauer_decision_time[i]) + len(L3_decision_time[i]))
-                except:
-                    fraction_dauer[i] = np.nan
+    if len(dauer)>0 or len(L3)>0:
+        # find the expressed dauer gene values
+        dauer_gene = np.round((combine[dauer,2] + combine[dauer,3])/2).astype(int)
+        L3_gene = np.round((combine[L3,2] + combine[L3,3])/2).astype(int)
         
-            plt.plot(range(max_time), fraction_dauer, label=j)
+        for i in range(min(min(dauer_gene),min(L3_gene)), (max(max(dauer_gene),max(L3_gene))+1)):
+            # what fraction of worms went into dauer
+            fraction_dauer = np.sum(dauer_gene == i) / (np.sum(dauer_gene == i) + np.sum(L3_gene == i))
+            plt.plot(i, fraction_dauer, marker="o")
         
-        plt.xlabel("Maximum Hours Spent in L2d Before Deciding")
+        plt.xlabel("Expressed Dauer Gene Values")
         plt.ylabel("Fraction of Worms that Went into Dauer")
-        plt.legend(title="Genes", bbox_to_anchor=(1,1), ncol=3)
 
 # Graph the Winning Genetic Lines in Each Square
 def genetic_line_map(var, df, p2i):
