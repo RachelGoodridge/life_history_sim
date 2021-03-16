@@ -775,7 +775,7 @@ def prob_dauer(var, time_spent):
             prob = 1/(1 + np.exp((i - time_spent)/var["gp_map"]))
             z[k,j] = 0.5*prob + 0.5*j/var["pher_max"]
     z[z >= var["L2d_cutoff"]] = 1
-    plt.pcolormesh(x, y, z, cmap="bwr", shading="auto")
+    plt.pcolormesh(x, y, z, cmap="coolwarm", shading="auto")
     plt.axvline(x=time_spent, color="black")
     plt.text(time_spent-1.5,var["pher_max"]/2-50,"time spent",rotation=90)
     plt.text(var["dauer_gene"][0]+2,var["pher_max"]-50,"cutoff")
@@ -884,6 +884,21 @@ def gender_map(grid, var, grid_dim):
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
 
+# Graph the Population Size Over Time
+def worms_alive(save, all_my_data):
+    # create an empty list
+    alive_num = []
+    
+    # loop through all the time points and count the number of living worms
+    for i in range(len(save)):
+        df = all_my_data[i]["array"]
+        p2i = all_my_data[i]["p_to_i"]
+        alive_num.append(np.sum(df[:,p2i["alive"]]==1))
+    
+    plt.plot(save, alive_num, "-o")
+    plt.xlabel("Time (hrs)")
+    plt.ylabel("Number of Worms Alive")
+
 # Calculate the Average Time Spent and Show a Boxplot
 def stage_time(stage, p2i, df, var):
     # gather all data on stages
@@ -973,49 +988,8 @@ def open_pickle(iteration):
     old_file.close()
     return(all_data)
 
-# Fraction of Worms in Dauer
-def frac_dauer(p2i, df, var):
-    # gather data on stages L2d, L3, and dauer
-    combine = np.array([], dtype=np.int64).reshape(0,3)
-    for i in range(var["data"]):
-        file_name = "dead_worm_data_dump_" + str(i) + ".p"
-        old_file = open(file_name, "rb")
-        old_data = pickle.load(old_file)
-        old_file.close()
-        old_data = old_data[:,p2i["L2d"]:p2i["L4"]]
-        combine = np.concatenate((combine, old_data))
-    combine = np.concatenate((combine, df[:,p2i["L2d"]:p2i["L4"]]))
-    
-    # which worms went into dauer vs. L3
-    dauer = np.array(np.where(combine[:, 2]>0))[0]
-    L3 = np.array(np.where(combine[:, 1]>0))[0]
-    
-    if len(dauer)>0 or len(L3)>0:
-        max_time = (max(max(combine[dauer, 0]), max(combine[L3, 0])) + 1).astype(int)
-        # which worms decided to go into dauer at time step [index]
-        dauer_decision_time = [[] for i in range(max_time)]
-        for i in range(1,max_time):
-            dauer_decision_time[i] = dauer[combine[dauer, 0]==i]
-            
-        # which worms decided to go into L3 at time step [index]
-        L3_decision_time = [[] for i in range(max_time)]
-        for i in range(1,max_time):
-            L3_decision_time[i] = L3[combine[L3, 0]==i]
-                
-        # what fraction of worms went into dauer at each time step
-        fraction_dauer = [[] for i in range(max_time)]
-        for i in range(max_time):
-            try:
-                fraction_dauer[i] = len(dauer_decision_time[i]) / (len(dauer_decision_time[i]) + len(L3_decision_time[i]))
-            except:
-                fraction_dauer[i] = np.nan
-    
-        plt.plot(range(max_time), fraction_dauer)
-        plt.xlabel("Hours Spent in L2d Before Deciding")
-        plt.ylabel("Fraction of Worms that Went into Dauer")
-
 # Fraction of Worms in Dauer by Genotype
-def frac_dauer_gene(p2i, df, var):
+def frac_dauer(p2i, df, var):
     # collect all worms from old files
     combine = np.array([], dtype=np.int64).reshape(0,4)
     for i in range(var["data"]):
@@ -1039,10 +1013,58 @@ def frac_dauer_gene(p2i, df, var):
         for i in range(min(min(dauer_gene),min(L3_gene)), (max(max(dauer_gene),max(L3_gene))+1)):
             # what fraction of worms went into dauer
             fraction_dauer = np.sum(dauer_gene == i) / (np.sum(dauer_gene == i) + np.sum(L3_gene == i))
-            plt.plot(i, fraction_dauer, marker="o")
+            plt.plot(i, fraction_dauer, marker="o", color="tab:blue")
         
         plt.xlabel("Expressed Dauer Gene Values")
         plt.ylabel("Fraction of Worms that Went into Dauer")
+
+# Fraction of Worms in Dauer by Genotype vs. Hours Spent
+def frac_dauer_map(p2i, df, var):
+    # collect all worms from old files
+    combine = np.array([], dtype=np.int64).reshape(0,5)
+    for i in range(var["data"]):
+        file_name = "dead_worm_data_dump_" + str(i) + ".p"
+        old_file = open(file_name, "rb")
+        old_data = pickle.load(old_file)
+        old_file.close()
+        old_data = old_data[:,[p2i["L2d"],p2i["L3"],p2i["dauer"],p2i["dauer_1"],p2i["dauer_2"]]]
+        combine = np.concatenate((combine, old_data))    
+    combine = np.concatenate((combine, df[:,[p2i["L2d"],p2i["L3"],p2i["dauer"],p2i["dauer_1"],p2i["dauer_2"]]]))
+    
+    # which worms went from L2d into dauer or L3
+    combine = combine[combine[:,0]>0]
+    combine = np.concatenate((combine[combine[:,1]>0], combine[combine[:,2]>0]))
+    
+    # min and max of genes and hours spent
+    genes = ((combine[:,3] + combine[:,4])/2).astype(int)
+    min_gene = np.min(genes)
+    max_gene = np.max(genes) + 1
+    min_hours = np.min(combine[:,0]).astype(int)
+    max_hours = np.max(combine[:,0]).astype(int) + 1
+    
+    # set up the heatmap
+    x, y = np.mgrid[slice(min_gene,max_gene), slice(min_hours,max_hours)]
+    z = np.zeros((max_gene-min_gene,max_hours-min_hours))
+
+    for i in range(min_gene, max_gene):
+        for j in range(min_hours, max_hours):
+            # find worms with the correct gene and hours spent
+            temp_combine = combine[genes==i]
+            temp_combine = temp_combine[temp_combine[:,0]==j]
+            if len(temp_combine) > 0:
+                # calculate the fraction in dauer
+                L3 = np.sum(temp_combine[:,1]>0)
+                dauer = np.sum(temp_combine[:,2]>0)
+                z[i-min_gene,j-min_hours] = dauer / (dauer + L3)
+            else:
+                z[i-min_gene,j-min_hours] = np.nan
+
+    plt.pcolormesh(x, y, z, cmap="coolwarm", shading="auto")
+    plt.title("Fraction of Worms that Went into Dauer")
+    plt.xlabel("Expressed Dauer Gene Values")
+    plt.ylabel("Hours Spent in L2d Before Deciding")
+    plt.axis([min_gene,max_gene-1,min_hours,max_hours-1])
+    plt.colorbar(ticks=np.arange(0,1.1,0.1))
 
 # Graph the Winning Genetic Lines in Each Square
 def genetic_line_map(var, df, p2i):
@@ -1178,17 +1200,11 @@ def patch_repop(var):
     plt.xlabel("Time (hrs)")
     plt.ylabel("Chance of Patch Repopulation")
 
-# Average Value of Dauer Gene of Winning Lineage Over Time
-def dauer_over_time(var, time_spent, save):
-    # load in data from the last time point
-    file_name = "all_info_saved_iter_" + str(save[-1]) + ".p"
-    old_file = open(file_name, "rb")
-    all_data = pickle.load(old_file)
-    old_file.close()
-    
-    # define some variables
-    df = all_data["array"]
-    p2i = all_data["p_to_i"]
+# Average Value of Dauer Gene Over Time
+def dauer_over_time(var, time_spent, save, all_my_data):    
+    # define some variables from the last time point
+    df = all_my_data[-1]["array"]
+    p2i = all_my_data[-1]["p_to_i"]
     
     # determine which lineage is the most common
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
@@ -1198,18 +1214,15 @@ def dauer_over_time(var, time_spent, save):
     genes = genes/2
     which = stats.mode(genes)[0][0]
     
-    # loop through every time point
+    # make all the empty lists
     dauer_value = []
-    for i in save:
-        # load in data from the that time point
-        file_name = "all_info_saved_iter_" + str(i) + ".p"
-        old_file = open(file_name, "rb")
-        all_data = pickle.load(old_file)
-        old_file.close()
-        
-        # define some variables
-        df = all_data["array"]
-        p2i = all_data["p_to_i"]
+    dauer_avg_value = []
+    
+    # loop through every time point
+    for i in range(len(save)):
+        # define some variables for the current time point
+        df = all_my_data[i]["array"]
+        p2i = all_my_data[i]["p_to_i"]
         
         # get the list of lineages and pick the worms that match the winning lineage
         alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
@@ -1222,38 +1235,125 @@ def dauer_over_time(var, time_spent, save):
         # find their average dauer gene value and append to list
         dauer = np.mean((df[these,p2i["dauer_1"]] + df[these,p2i["dauer_2"]])/2)
         dauer_value.append(dauer)
-    
-    plt.plot(save, dauer_value, "-o")
-    plt.ylim(var["dauer_gene"][0],var["dauer_gene"][1]+1)
-    plt.axhline(y=time_spent, color="black")
-    plt.title("Winning Lineage " + str(int(which)) + " Genetics Over Time")
-    plt.xlabel("Time (hrs)")
-    plt.ylabel("Average Value of Dauer Gene")
-
-# Average Value of Dauer Gene Over Time
-def all_dauer_over_time(var, time_spent, save):    
-    # loop through every time point
-    dauer_value = []
-    for i in save:
-        # load in data from the that time point
-        file_name = "all_info_saved_iter_" + str(i) + ".p"
-        old_file = open(file_name, "rb")
-        all_data = pickle.load(old_file)
-        old_file.close()
         
-        # define some variables
-        df = all_data["array"]
-        p2i = all_data["p_to_i"]
-        
-        # find their average dauer gene value and append to list
-        alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+        # find the average dauer gene for the entire population
         dauer = np.mean((df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2)
-        dauer_value.append(dauer)
+        dauer_avg_value.append(dauer)
     
-    plt.plot(save, dauer_value, "-o")
+    plt.plot(save, dauer_value, "-o", color="b", label="Winning Lineage " + str(int(which)))
+    plt.plot(save, dauer_avg_value, "-o", color="r", label="Population Average")
+    plt.text(save[-1], dauer_value[-1]+1, str(np.round(dauer_value[-1],2)), ha="center", color="b")
+    plt.text(save[-1], dauer_avg_value[-1]+1, str(np.round(dauer_avg_value[-1],2)), ha="center", color="r")
     plt.ylim(var["dauer_gene"][0],var["dauer_gene"][1]+1)
     plt.axhline(y=time_spent, color="black")
-    plt.title("Genetics Over Time")
     plt.xlabel("Time (hrs)")
     plt.ylabel("Average Value of Dauer Gene")
+    plt.legend()
+
+# Average Value of Smell Gene Over Time
+def smell_over_time(save, all_my_data):    
+    # define some variables from the last time point
+    df = all_my_data[-1]["array"]
+    p2i = all_my_data[-1]["p_to_i"]
     
+    # determine which lineage is the most common
+    alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+    genes = copy.copy(stats.mode(df[alive, p2i["gene_0"]:], axis=1)[0])
+    genes = genes.flatten().astype(int)
+    genes[genes%2==1] += 1
+    genes = genes/2
+    which = stats.mode(genes)[0][0]
+    
+    # make all the empty lists
+    smell_value = []
+    smell_avg_value = []
+    
+    # loop through every time point
+    for i in range(len(save)):
+        # define some variables for the current time point
+        df = all_my_data[i]["array"]
+        p2i = all_my_data[i]["p_to_i"]
+        
+        # get the list of lineages and pick the worms that match the winning lineage
+        alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+        genes = copy.copy(stats.mode(df[alive, p2i["gene_0"]:], axis=1)[0])
+        genes = genes.flatten().astype(int)
+        genes[genes%2==1] += 1
+        genes = genes/2
+        these = alive[genes==which]
+        
+        # find their average smell gene value and append to list
+        smell = np.mean((df[these,p2i["smell_1"]] + df[these,p2i["smell_2"]])/2)
+        smell_value.append(smell)
+        
+        # find the average smell gene for the entire population
+        smell = np.mean((df[alive,p2i["smell_1"]] + df[alive,p2i["smell_2"]])/2)
+        smell_avg_value.append(smell)
+    
+    plt.plot(save, smell_value, "-o", color="b", label="Winning Lineage " + str(int(which)))
+    plt.plot(save, smell_avg_value, "-o", color="r", label="Population Average")
+    plt.text(save[-1], smell_value[-1]+0.01, str(np.round(smell_value[-1],2)), ha="center", color="b")
+    plt.text(save[-1], smell_avg_value[-1]+0.01, str(np.round(smell_avg_value[-1],2)), ha="center", color="r")
+    plt.ylim(0.25,0.75)
+    plt.axhline(y=0.5, color="black")
+    plt.xlabel("Time (hrs)")
+    plt.ylabel("Average Value of Travel Direction Gene")
+    plt.legend()
+
+# Fraction of Mutants
+def mutation(save, all_my_data):
+    # define some variables from the first time point
+    df = all_my_data[0]["array"]
+    p2i = all_my_data[0]["p_to_i"]
+    
+    # find the initial dauer and smell genes
+    alive = df[:,p2i["alive"]]==1
+    original_d = np.concatenate((df[alive,p2i["dauer_1"]], df[alive,p2i["dauer_2"]]))
+    original_s = np.concatenate((df[alive,p2i["smell_1"]], df[alive,p2i["smell_2"]]))
+    
+    # create some empty lists
+    fraction_d = []
+    fraction_s = []
+    
+    # loop through every time point
+    for i in range(len(save)):
+        # define some variables for the current time point
+        df = all_my_data[i]["array"]
+        p2i = all_my_data[i]["p_to_i"]
+        
+        # find the current dauer genes
+        alive = df[:,p2i["alive"]]==1
+        dauer = np.concatenate((df[alive,p2i["dauer_1"]], df[alive,p2i["dauer_2"]]))
+        fraction_d.append(np.sum(~np.isin(dauer, original_d))/len(dauer))
+        
+        # find the current smell genes
+        smell = np.concatenate((df[alive,p2i["smell_1"]], df[alive,p2i["smell_2"]]))
+        fraction_s.append(np.sum(~np.isin(smell, original_s))/len(smell))
+    
+    plt.plot(save, fraction_d, "-o", color="b", label="Dauer Genes")
+    plt.plot(save, fraction_s, "-o", color="r", label="Travel Genes")
+    plt.text(save[-1], fraction_d[-1]+0.05, str(np.round(fraction_d[-1],2)), ha="center", color="b")
+    plt.text(save[-1], fraction_s[-1]+0.05, str(np.round(fraction_s[-1],2)), ha="center", color="r")
+    plt.ylim(0,1)
+    plt.xlabel("Time (hrs)")
+    plt.ylabel("Fraction of Mutant Genes")
+    plt.legend()
+
+# Determine the Winning Lineages
+def winner(save, all_my_data):
+    print("Time (hrs) : Winning Lineage")
+    print("")
+
+    for i in range(len(save)):
+        # define some variables from the current time point
+        df = all_my_data[i]["array"]
+        p2i = all_my_data[i]["p_to_i"]
+        
+        # determine which lineage is the most common
+        alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+        genes = copy.copy(stats.mode(df[alive, p2i["gene_0"]:], axis=1)[0])
+        genes = genes.flatten().astype(int)
+        genes[genes%2==1] += 1
+        genes = genes/2
+        print(str(save[i]) + " : " + str(int(stats.mode(genes)[0][0])))
+        
