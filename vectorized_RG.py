@@ -589,8 +589,8 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         smell_weight=0.05, mutation_rate=0.001, gender=[0,1], dauer_gene=[0,35], num_patches=10,
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
-        save=[1,250,500,1000,1500,2000,5000,10000,20000,30000], food_amp=0, food_freq=(math.pi/4380),
-        dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.97, gp_map=3):
+        save=[1,250,500,1000,1500,2000,5000,10000,15000,20000,25000,30000], food_freq=(math.pi/4380),
+        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3):
     
     if dictionary:
         all_dict = dictionary
@@ -1341,8 +1341,7 @@ def mutation(save, all_my_data):
 
 # Determine the Winning Lineages
 def winner(save, all_my_data):
-    print("Time (hrs) : Winning Lineage")
-    print("")
+    d = {"Time (hrs)":save, "Winning Lineage":[], "Average Dauer Gene":[], "Fraction of Population":[]}
 
     for i in range(len(save)):
         # define some variables from the current time point
@@ -1355,5 +1354,15 @@ def winner(save, all_my_data):
         genes = genes.flatten().astype(int)
         genes[genes%2==1] += 1
         genes = genes/2
-        print(str(save[i]) + " : " + str(int(stats.mode(genes)[0][0])))
+        which = stats.mode(genes)[0][0]
         
+        # add data to the dictionary
+        d["Winning Lineage"].append(which.astype(int))
+        avg_gene = np.mean((df[alive[genes==which], p2i["dauer_1"]] + df[alive[genes==which], p2i["dauer_2"]])/2)
+        d["Average Dauer Gene"].append(np.round(avg_gene,3))
+        frac = np.sum(genes==which)/len(genes)
+        d["Fraction of Population"].append(np.round(frac,3))
+    
+    df = pd.DataFrame(data=d)
+    print(df)
+    
