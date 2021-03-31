@@ -1,8 +1,10 @@
 ###### Vectorized Version by RG ######
 import numpy as np
 import pandas as pd
+import copy
 import pdb
 import pickle
+from scipy import stats
 import math
 import os
 import sys
@@ -588,7 +590,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,15000,20000,25000,30000], food_freq=(math.pi/4380),
-        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3):
+        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=50):
     
     if dictionary:
         all_dict = dictionary
@@ -609,7 +611,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
                "energy_used":energy_used, "food_repop":food_repop, "grid_len":(food_len + space_between)*patches,
                "num_patches":num_patches, "sperm_bias":sperm_bias, "data":0, "iter":0, "seed":seed, "save":save,
                "food_amp":food_amp, "food_freq":food_freq, "dauer_age":dauer_age, "L2d_cutoff":L2d_cutoff,
-               "dauer_die":dauer_die, "gp_map":gp_map}
+               "dauer_die":dauer_die, "gp_map":gp_map, "save_freq":save_freq}
         
         # start off the random number generator
         np.random.seed(var["seed"])
@@ -719,6 +721,34 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             pickle.dump(all_dict, new_file)
             new_file.close()
             print("Information Saved - Iteration " + str(all_dict["par"]["iter"]))
+        if all_dict["par"]["iter"] % all_dict["par"]["save_freq"] == 0:
+            # add onto the lineage tracking file
+            file = open("lineage_tracking.txt", "a+")
+            file.write(str(all_dict["par"]["iter"]) + " ")
+            # find the lineages of each worm and their frequencies
+            alive = np.array(np.where(all_dict["array"][:,all_dict["p_to_i"]["alive"]]==1))[0]
+            lineage = copy.copy(stats.mode(all_dict["array"][alive, all_dict["p_to_i"]["gene_0"]:], axis=1)[0])
+            lineage = lineage.flatten().astype(int)
+            lineage[lineage%2==1] += 1
+            lineage = (lineage/2).astype(int)
+            counts = np.bincount(lineage)
+            counts = np.round(counts/np.sum(counts), decimals=3)
+            file.write(" ".join(map(str, counts)))
+            file.write("\n")
+            file.close()
+            
+            # add onto the allele tracking file
+            file = open("allele_tracking.txt", "a+")
+            file.write(str(all_dict["par"]["iter"]) + " ")
+            # find the alleles of each worm and their frequencies
+            dauer_1 = np.round(all_dict["array"][alive, all_dict["p_to_i"]["dauer_1"]])
+            dauer_2 = np.round(all_dict["array"][alive, all_dict["p_to_i"]["dauer_2"]])
+            dauer_genes = np.concatenate((dauer_1, dauer_2)).astype(int)
+            counts = np.bincount(dauer_genes)
+            counts = np.round(counts/np.sum(counts), decimals=3)
+            file.write(" ".join(map(str, counts)))
+            file.write("\n")
+            file.close()            
         
     return(all_dict)
 
