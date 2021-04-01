@@ -590,7 +590,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,15000,20000,25000,30000], food_freq=(math.pi/4380),
-        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=50):
+        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=100):
     
     if dictionary:
         all_dict = dictionary

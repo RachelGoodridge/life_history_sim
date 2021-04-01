@@ -8,6 +8,7 @@ import pickle
 from scipy import stats
 import math
 import seaborn as sns
+import os
 
 
 # Food Growth
@@ -590,7 +591,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         pher=[0,0.25,0.5,0.5,1,1,2,4,2], genders_prob=[[0.99,0.01], [0.5,0.5]], smell_gene=[0.5,0.05],
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,15000,20000,25000,30000], food_freq=(math.pi/4380),
-        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=50):
+        food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=100):
     
     if dictionary:
         all_dict = dictionary
@@ -1462,3 +1463,43 @@ def allele_track(var):
     plt.ylabel("Fraction of Population")
     plt.title("Dauer Alleles")
     plt.legend(bbox_to_anchor=(1,1), ncol=3)
+
+# Combination Graph
+def combine_results(exp_num, param, iteration):
+    # pick out all the correct files from the experiments folder
+    os.chdir("D:/Worms_Life_Sim/experiments/")
+    exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
+    
+    # create the empty lists
+    param_value = []
+    dauer_value = []
+    std_value = []
+    
+    # loop through each file from the experiment
+    for i in exp_list:
+        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        all_my_data = open_pickle(iteration)
+        
+        # define some variables
+        df = all_my_data["array"]
+        p2i = all_my_data["p_to_i"]
+        var = all_my_data["par"]
+        
+        # append values to the lists
+        param_value.append(var[param])
+        # find the average dauer gene and standard deviation for the entire population
+        alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+        dauer_value.append(np.mean((df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2))
+        std_value.append(np.std((df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2))
+    
+    # find and plot the line of best fit
+    m, b = np.polyfit(np.array(param_value), np.array(dauer_value), 1)
+    plt.plot(np.array(param_value), m*np.array(param_value) + b, color="tab:blue")    
+    
+    # plot the data points
+    plt.errorbar(param_value, dauer_value, yerr=std_value, marker="o", ls="none", color="tab:blue")
+    plt.yticks([var["dauer_gene"][0]+3,var["dauer_gene"][1]-2], ["more\n likely\n" + str(var["dauer_gene"][0]+3), "less\n likely\n" + str(var["dauer_gene"][1]-2)])
+    plt.ylim(var["dauer_gene"][1]+1,var["dauer_gene"][0])
+    plt.title("All Runs of Experiment " + str(exp_num) + " at Time Point " + str(iteration))
+    plt.xlabel("Parameter Varied : " + param)
+    plt.ylabel("Average Likelihood of L2d/Dauer")
