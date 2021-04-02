@@ -745,6 +745,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             dauer_1 = np.round(all_dict["array"][alive, all_dict["p_to_i"]["dauer_1"]])
             dauer_2 = np.round(all_dict["array"][alive, all_dict["p_to_i"]["dauer_2"]])
             dauer_genes = np.concatenate((dauer_1, dauer_2)).astype(int)
+            dauer_genes[dauer_genes < 0] = 0
             counts = np.bincount(dauer_genes)
             counts = np.round(counts/np.sum(counts), decimals=3)
             file.write(" ".join(map(str, counts)))
@@ -1421,14 +1422,17 @@ def line_track(var):
         else:
             df.loc[len(df)] = data
     df[df==0]=np.nan
-    
+
     # create the plot
     for i in range(df.shape[1]-1):
-        plt.plot(df["Time"], df[i], "-o", label=i)
+        if i in np.where(df.loc[df.shape[0]-1,0:].notna())[0]:
+            plt.plot(df["Time"], df[i], "-", label=i)
+        else:
+            plt.plot(df["Time"], df[i], "-")
     plt.xlabel("Time (hrs)")
     plt.ylabel("Fraction of Population")
     plt.title("Genetic Lineages")
-    plt.legend(bbox_to_anchor=(1, 1), ncol=6)
+    plt.legend(title="Last Line(s)", bbox_to_anchor=(1, 1))
 
 # Allele Tracking
 def allele_track(var):
@@ -1458,11 +1462,14 @@ def allele_track(var):
     
     # create the plot
     for i in range(df.shape[1]-1):
-        plt.plot(df["Time"], df[i], "-o", label=i)
+        if i in np.where(df.loc[df.shape[0]-1,0:].notna())[0]:
+            plt.plot(df["Time"], df[i], "-", label=i)
+        else:
+            plt.plot(df["Time"], df[i], "-")
     plt.xlabel("Time (hrs)")
     plt.ylabel("Fraction of Population")
     plt.title("Dauer Alleles")
-    plt.legend(bbox_to_anchor=(1,1), ncol=3)
+    plt.legend(title="Last Allele(s)", bbox_to_anchor=(1,1))
 
 # Combination Graph
 def combine_results(exp_num, param, iteration):
@@ -1494,7 +1501,7 @@ def combine_results(exp_num, param, iteration):
     
     # find and plot the line of best fit
     m, b = np.polyfit(np.array(param_value), np.array(dauer_value), 1)
-    plt.plot(np.array(param_value), m*np.array(param_value) + b, color="tab:blue")    
+    plt.plot(np.array(param_value), m*np.array(param_value) + b, color="black")    
     
     # plot the data points
     plt.errorbar(param_value, dauer_value, yerr=std_value, marker="o", ls="none", color="tab:blue")

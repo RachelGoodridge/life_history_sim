@@ -744,6 +744,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             dauer_1 = np.round(all_dict["array"][alive, all_dict["p_to_i"]["dauer_1"]])
             dauer_2 = np.round(all_dict["array"][alive, all_dict["p_to_i"]["dauer_2"]])
             dauer_genes = np.concatenate((dauer_1, dauer_2)).astype(int)
+            dauer_genes[dauer_genes < 0] = 0
             counts = np.bincount(dauer_genes)
             counts = np.round(counts/np.sum(counts), decimals=3)
             file.write(" ".join(map(str, counts)))
