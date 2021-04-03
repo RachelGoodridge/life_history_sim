@@ -1,4 +1,4 @@
-###### Vectorized Version by RG ######
+###### Modified Version by RG ######
 import numpy as np
 import pandas as pd
 import copy

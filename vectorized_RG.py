@@ -9,6 +9,7 @@ from scipy import stats
 import math
 import seaborn as sns
 import os
+import pylab
 
 
 # Food Growth
@@ -1510,3 +1511,62 @@ def combine_results(exp_num, param, iteration):
     plt.title("All Runs of Experiment " + str(exp_num) + " at Time Point " + str(iteration))
     plt.xlabel("Parameter Varied : " + param)
     plt.ylabel("Average Likelihood of L2d/Dauer")
+
+# Combination Graph Over Time
+def combine_results_over_time(exp_num, param):
+    # pick out all the correct files from the experiments folder
+    os.chdir("D:/Worms_Life_Sim/experiments/")
+    exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
+    
+    # find all the values of the parameter
+    param_value = []
+    for i in exp_list:
+        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        all_my_data = open_pickle(1)
+        param_value.append(all_my_data["par"][param])
+    
+    # sort the experiments by parameter
+    exp_list = np.array(exp_list)[np.argsort(param_value)]
+    param_value.sort()
+    
+    # determine the color of each line using a colormap theme
+    cm = pylab.get_cmap("winter")
+    colors = np.array(param_value)/max(param_value)
+    colors = [cm(1.*i) for i in colors]
+    
+    # loop through each file from the experiment
+    for i, j in zip(exp_list, range(len(param_value))):
+        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        time_saved = [int(file.split("_")[-1].split(".")[0]) for file in os.listdir() if file.split("_")[0] == "all"]
+        time_saved.sort()
+        
+        # create the empty lists
+        dauer_value = []
+        std_value = []
+        
+        for k in time_saved:
+            all_my_data = open_pickle(k)
+            
+            # define some variables
+            df = all_my_data["array"]
+            p2i = all_my_data["p_to_i"]
+            var = all_my_data["par"]
+            
+            # find the average dauer gene and standard deviation for the entire population
+            alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+            dauer_value.append(np.mean((df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2))
+            std_value.append(np.std((df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2))    
+    
+        # plot the data points
+        if j in [np.argmax(param_value==i) for i in np.unique(param_value)]:
+            plt.errorbar(time_saved, dauer_value, yerr=std_value, marker="o", label=round(var[param],3), color=colors[j])
+        else:
+            plt.errorbar(time_saved, dauer_value, yerr=std_value, marker="o", color=colors[j])
+    
+    # create the rest of the plot
+    plt.yticks([var["dauer_gene"][0]+3,var["dauer_gene"][1]-2], ["more\n likely\n" + str(var["dauer_gene"][0]+3), "less\n likely\n" + str(var["dauer_gene"][1]-2)])
+    plt.ylim(var["dauer_gene"][1]+1,var["dauer_gene"][0])
+    plt.title("All Runs of Experiment " + str(exp_num))
+    plt.xlabel("Time (hrs)")
+    plt.ylabel("Average Likelihood of L2d/Dauer")
+    plt.legend(title=param, bbox_to_anchor=(1,1))
