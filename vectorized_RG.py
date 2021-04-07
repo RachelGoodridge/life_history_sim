@@ -761,7 +761,7 @@ def food_map(grid, var, grid_dim):
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     z = copy.copy(grid[:,:,grid_dim["food"]])
     z[z==0] = np.nan
-    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
+    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto", vmin=0)
     plt.title("Food Density")
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
@@ -773,7 +773,7 @@ def pher_map(grid, var, grid_dim):
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     z = copy.copy(grid[:,:,grid_dim["pher"]])
     z[z==0] = np.nan
-    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
+    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto", vmin=0)
     plt.title("Pheromone Density")
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
@@ -889,7 +889,7 @@ def worm_map(grid, var, grid_dim, map_type="worm"):
     else:
         z = copy.copy(np.sum(grid[:,:,[grid_dim[i] for i in grid_dim if map_type in i]],axis=2))
     z[z==0] = np.nan
-    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
+    plt.pcolormesh(x, y, z, cmap="Blues", shading="auto", vmin=0)
     plt.title(map_type.capitalize() + " Density")
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
@@ -906,8 +906,8 @@ def gender_map(grid, var, grid_dim):
     z2[z2==0] = np.nan
     plt.figure()
     plt.subplot()
-    females = plt.pcolormesh(x, y, z2, cmap="Blues", shading="auto")
-    males = plt.pcolormesh(x, y, z1, cmap="Reds", alpha=0.5, shading="auto")
+    females = plt.pcolormesh(x, y, z2, cmap="Blues", shading="auto", vmin=0)
+    males = plt.pcolormesh(x, y, z1, cmap="Reds", alpha=0.5, shading="auto", vmin=0)
     plt.axis([0,var["grid_len"],0,var["grid_len"]])
     plt.colorbar(males, label="Males")
     plt.colorbar(females, label="Hermaphrodites / Females")
@@ -1528,10 +1528,11 @@ def combine_results_over_time(exp_num, param):
     # sort the experiments by parameter
     exp_list = np.array(exp_list)[np.argsort(param_value)]
     param_value.sort()
-    
+        
     # determine the color of each line using a colormap theme
     cm = pylab.get_cmap("winter")
-    colors = np.array(param_value)/max(param_value)
+    colors = np.array(param_value) - min(param_value)
+    colors = colors/max(colors)
     colors = [cm(1.*i) for i in colors]
     
     # loop through each file from the experiment
