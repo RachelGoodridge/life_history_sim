@@ -732,7 +732,6 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             lineage[lineage%2==1] += 1
             lineage = (lineage/2).astype(int)
             counts = np.bincount(lineage)
-            counts = np.round(counts/np.sum(counts), decimals=3)
             file.write(" ".join(map(str, counts)))
             file.write("\n")
             file.close()
@@ -746,7 +745,6 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             dauer_genes = np.concatenate((dauer_1, dauer_2)).astype(int)
             dauer_genes[dauer_genes < 0] = 0
             counts = np.bincount(dauer_genes)
-            counts = np.round(counts/np.sum(counts), decimals=3)
             file.write(" ".join(map(str, counts)))
             file.write("\n")
             file.close()            

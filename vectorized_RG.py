@@ -734,7 +734,6 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             lineage[lineage%2==1] += 1
             lineage = (lineage/2).astype(int)
             counts = np.bincount(lineage)
-            counts = np.round(counts/np.sum(counts), decimals=3)
             file.write(" ".join(map(str, counts)))
             file.write("\n")
             file.close()
@@ -748,7 +747,6 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
             dauer_genes = np.concatenate((dauer_1, dauer_2)).astype(int)
             dauer_genes[dauer_genes < 0] = 0
             counts = np.bincount(dauer_genes)
-            counts = np.round(counts/np.sum(counts), decimals=3)
             file.write(" ".join(map(str, counts)))
             file.write("\n")
             file.close()            
@@ -810,6 +808,7 @@ def prob_dauer(var, time_spent):
     plt.axvline(x=time_spent, color="black")
     plt.text(time_spent-1.5,var["pher_max"]/2-50,"time spent",rotation=90)
     plt.text(var["dauer_gene"][0]+2,var["pher_max"]-50,"cutoff")
+    plt.text(var["dauer_gene"][1]-12,var["pher_max"]-50,"map value = "+str(var["gp_map"]))
     plt.title("Probability of Going into Dauer")
     plt.xlabel("Initial Dauer Gene Values")
     plt.ylabel("Amount of Pheromones")
@@ -1431,7 +1430,7 @@ def line_track(var):
         else:
             plt.plot(df["Time"], df[i], "-")
     plt.xlabel("Time (hrs)")
-    plt.ylabel("Fraction of Population")
+    plt.ylabel("Number of Worms")
     plt.title("Genetic Lineages")
     plt.legend(title="Last Line(s)", bbox_to_anchor=(1, 1))
 
@@ -1468,7 +1467,7 @@ def allele_track(var):
         else:
             plt.plot(df["Time"], df[i], "-")
     plt.xlabel("Time (hrs)")
-    plt.ylabel("Fraction of Population")
+    plt.ylabel("Number of Worms")
     plt.title("Dauer Alleles")
     plt.legend(title="Last Allele(s)", bbox_to_anchor=(1,1))
 
