@@ -1212,7 +1212,10 @@ def clump(var, df, p2i):
     x_val = np.minimum(x_diff,(var["grid_len"]-x_diff))**2
     y_val = np.minimum(y_diff,(var["grid_len"]-y_diff))**2
     baseline = np.mean(np.sqrt(x_val + y_val))
-    f = sns.displot(lineage, kde=True)
+    if len(lineage) > 1:
+        f = sns.displot(lineage, kde=True)
+    else:
+        f = sns.displot(lineage, kde=False)
     plt.axvline(x=baseline, color="gray")
     f.set_axis_labels("Average Distance Between Worms", "Number of Lineages")
     plt.title("Dispersal of Genetic Lines")
@@ -1430,7 +1433,7 @@ def line_track(var):
         else:
             plt.plot(df["Time"], df[i], "-")
     plt.xlabel("Time (hrs)")
-    plt.ylabel("Number of Worms")
+    plt.ylabel("Number of Worms in Lineage")
     plt.title("Genetic Lineages")
     plt.legend(title="Last Line(s)", bbox_to_anchor=(1, 1))
 
@@ -1467,9 +1470,32 @@ def allele_track(var):
         else:
             plt.plot(df["Time"], df[i], "-")
     plt.xlabel("Time (hrs)")
-    plt.ylabel("Number of Worms")
+    plt.ylabel("Number of Alleles in Population")
     plt.title("Dauer Alleles")
     plt.legend(title="Last Allele(s)", bbox_to_anchor=(1,1))
+
+# Make a Muller Diagram
+def make_muller(var):
+    # read in the file
+    f = open("allele_tracking.txt", "r")
+    f1 = f.readlines()
+    f.close()
+
+    # create the columns
+    cols = [int(i.split(" ")[0]) for i in f1]
+    cols = ["Genotype"] + cols
+
+    # create a dataframe -- fix something weird
+    df = pd.DataFrame(columns=cols)
+    for i in range(len(f1)):
+        data = list(map(int, f1[i].split(" ")))[1:]
+        data = np.array(data)/np.sum(data)
+        if len(data) < len(df):
+            data = np.concatenate((data, np.zeros(len(df)-len(data))))
+        df.loc[:,i+1] = data
+    df.loc[:,0] = np.arange(len(df))
+
+    # import muller
 
 # Combination Graph
 def combine_results(exp_num, param, iteration):
@@ -1503,6 +1529,9 @@ def combine_results(exp_num, param, iteration):
     m, b = np.polyfit(np.array(param_value), np.array(dauer_value), 1)
     plt.plot(np.array(param_value), m*np.array(param_value) + b, color="black")    
     
+    # calculate correlation
+    r = np.round(stats.pearsonr(param_value, dauer_value)[0], 3)
+    
     # plot the data points
     plt.errorbar(param_value, dauer_value, yerr=std_value, marker="o", ls="none", color="tab:blue")
     plt.yticks([var["dauer_gene"][0]+3,var["dauer_gene"][1]-2], ["more\n likely\n" + str(var["dauer_gene"][0]+3), "less\n likely\n" + str(var["dauer_gene"][1]-2)])
@@ -1510,6 +1539,7 @@ def combine_results(exp_num, param, iteration):
     plt.title("All Runs of Experiment " + str(exp_num) + " at Time Point " + str(iteration))
     plt.xlabel("Parameter Varied : " + param)
     plt.ylabel("Average Likelihood of L2d/Dauer")
+    plt.text(max(param_value), var["dauer_gene"][0]+3, "r = " + str(r), ha="right")
 
 # Combination Graph Over Time
 def combine_results_over_time(exp_num, param):
