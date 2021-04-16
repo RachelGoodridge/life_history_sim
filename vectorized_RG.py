@@ -1474,28 +1474,40 @@ def allele_track(var):
     plt.title("Dauer Alleles")
     plt.legend(title="Last Allele(s)", bbox_to_anchor=(1,1))
 
-# Make a Muller Diagram
-def make_muller(var):
+# Setup for Muller Diagram
+def make_muller(pop_size):
+    # use this function in combination with muller_code.R
     # read in the file
-    f = open("allele_tracking.txt", "r")
+    f = open("lineage_tracking.txt", "r")
     f1 = f.readlines()
     f.close()
 
-    # create the columns
-    cols = [int(i.split(" ")[0]) for i in f1]
-    cols = ["Genotype"] + cols
+    # create the basic data
+    data_len = len(f1)*pop_size
+    line = np.tile(np.arange(pop_size),len(f1))
+    base_data = np.zeros((data_len, 3)).astype(int)
+    base_data[:,1] = line
 
-    # create a dataframe -- fix something weird
-    df = pd.DataFrame(columns=cols)
+    # create the dataframe
+    df = pd.DataFrame(base_data, index=np.arange(1,data_len+1), columns=["Time", "Identity", "Population"])
+    count = 1
     for i in range(len(f1)):
-        data = list(map(int, f1[i].split(" ")))[1:]
-        data = np.array(data)/np.sum(data)
-        if len(data) < len(df):
-            data = np.concatenate((data, np.zeros(len(df)-len(data))))
-        df.loc[:,i+1] = data
-    df.loc[:,0] = np.arange(len(df))
-
-    # import muller
+        
+        # define each column of data
+        data = list(map(int, f1[i].split(" ")[1:]))
+        time = np.repeat(int(f1[i].split(" ")[0]), pop_size)
+        if len(data) < pop_size:
+            data = np.concatenate((data, np.zeros((pop_size-len(data))))).astype(int)
+        
+        # insert the data into the dataframe
+        end = pop_size + count - 1
+        df.loc[count:end,"Time"] = time
+        df.loc[count:end,"Population"] = data
+        count += pop_size
+    
+    # save the dataframe in a csv file
+    os.chdir("C:/Users/Rachel/Documents/Rachel/BS MS Program/muller_plots/")
+    df.to_csv("lineage_data.csv", index=False)
 
 # Combination Graph
 def combine_results(exp_num, param, iteration):
