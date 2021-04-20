@@ -930,7 +930,7 @@ def worms_alive(save, all_my_data):
     plt.ylabel("Number of Worms Alive")
 
 # Calculate the Average Time Spent and Show a Boxplot
-def stage_time(stage, p2i, df, var):
+def stage_time(stage, p2i, df, var, exclude_dauer=False):
     # gather all data on stages
     time_spent = np.array([], dtype=np.int64).reshape(0,8)
     for i in range(var["data"]):
@@ -949,13 +949,25 @@ def stage_time(stage, p2i, df, var):
     time_spent[time_spent == 0] = np.nan
     if not np.all(np.isnan(time_spent)):
         averages = np.round(np.nanmean(time_spent, axis=0), decimals=3)
-        print("Average Time Spent Per Stage (hrs)")
-        for i,j in zip(averages, stage[1:]):
-            print(j + " " + str(i))
-        plt.boxplot(time_per_stage, showmeans=True)
-        plt.xticks([*range(1,9)], (stage[1:]))
-        plt.title("Distribution of Time Spent Per Stage")
-        plt.ylabel("Time Spent (hrs)")
+        if exclude_dauer:
+            stages = stage[1:5] + stage[6:]
+            new_time = time_per_stage[:4] + time_per_stage[5:]
+            new_avg = list(averages[:4]) + list(averages[5:])
+            position = [0, 50, 50, 50, 50, 50, 200, 200]
+            plt.boxplot(new_time, showmeans=True)
+            plt.xticks([*range(1,8)], stages)
+            plt.title("Distribution of Time Spent Per Stage")
+            plt.ylabel("Time Spent (hrs)")
+            for i,j in zip(new_avg, range(1,8)):
+                plt.text(j, i+position[j], str(np.round(i,1)), ha="center")
+        else:
+            position = [0, 200, 200, 200, 200, -300, 200, 300, 400]
+            plt.boxplot(time_per_stage, showmeans=True)
+            plt.xticks([*range(1,9)], (stage[1:]))
+            plt.title("Distribution of Time Spent Per Stage")
+            plt.ylabel("Time Spent (hrs)")
+            for i,j in zip(averages, range(1,9)):
+                plt.text(j, i+position[j], str(np.round(i,1)), ha="center")
     
     # return the L2d average value
     return(averages[2])
@@ -1542,7 +1554,8 @@ def combine_results(exp_num, param, iteration):
     plt.plot(np.array(param_value), m*np.array(param_value) + b, color="black")    
     
     # calculate correlation
-    r = np.round(stats.pearsonr(param_value, dauer_value)[0], 3)
+    r = stats.pearsonr(param_value, dauer_value)[0]
+    r_sq = np.round(r**2, 3)
     
     # plot the data points
     plt.errorbar(param_value, dauer_value, yerr=std_value, marker="o", ls="none", color="tab:blue")
@@ -1551,7 +1564,8 @@ def combine_results(exp_num, param, iteration):
     plt.title("All Runs of Experiment " + str(exp_num) + " at Time Point " + str(iteration))
     plt.xlabel("Parameter Varied : " + param)
     plt.ylabel("Average Likelihood of L2d/Dauer")
-    plt.text(max(param_value), var["dauer_gene"][0]+3, "r = " + str(r), ha="right")
+    plt.text(max(param_value), var["dauer_gene"][0]+3, "R² = " + str(r_sq), ha="right")
+    plt.text(max(param_value), var["dauer_gene"][0]+5, "m = " + str(np.round(m,2)), ha="right")
 
 # Combination Graph Over Time
 def combine_results_over_time(exp_num, param):
