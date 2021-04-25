@@ -7,11 +7,11 @@ pop_size = 200
 # load required packages
 library("ggmuller")
 library("readr")
+library("plyr")
 library("dplyr")
 library("magrittr")
 library("ggplot2")
 library("tidyr")
-library("plyr")
 
 # read in the data and define starting values
 pop_data = read_csv("lineage_data.csv")
@@ -22,9 +22,11 @@ start_pop_size = pop_data %>% filter(Time == start_time) %>% pull(Population) %>
 edges = tibble(Parent=pop_size, Identity=unique(pop_data$Identity))
 pop_data = rbind.fill(tibble(Time=start_time-0.01, Identity=pop_size, Population=start_pop_size), pop_data)
 
-# create the matrix
+# create the muller matrix
 muller_matrix = get_Muller_df(edges, pop_data)
 
-# create the plots
-Muller_plot(muller_matrix, add_legend = F, xlab = "Time", ylab = "Proportion")
-Muller_pop_plot(muller_matrix, add_legend = F, xlab = "Time", ylab = "Population size")
+# create and print the plots
+mp = Muller_plot(muller_matrix, add_legend = F, xlab = "Time", ylab = "Proportion")
+mpp = Muller_pop_plot(muller_matrix, add_legend = F, xlab = "Time", ylab = "Population size")
+print(mp)
+print(mpp)
