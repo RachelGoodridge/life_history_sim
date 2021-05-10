@@ -1521,6 +1521,41 @@ def make_muller(pop_size):
     os.chdir("C:/Users/Rachel/Documents/Rachel/BS MS Program/muller_plots/")
     df.to_csv("lineage_data.csv", index=False)
 
+# Compare Parameters Between Runs of a Particular Experiment
+def compare_para(exp_num):
+    # pick out all the correct files from the experiments folder
+    os.chdir("D:/Worms_Life_Sim/experiments/")
+    exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
+    
+    # create the empty dataframe with all current parameters
+    cols = list(run(1, save=[])["par"].keys())
+    df = pd.DataFrame(columns=cols)
+
+    # loop through each file from the experiment
+    for i in range(len(exp_list)):
+        os.chdir("D:/Worms_Life_Sim/experiments/" + exp_list[i])
+        all_my_data = open_pickle(1)
+        
+        # define some variables
+        keys = list(all_my_data["par"].keys())
+        values = list(all_my_data["par"].values())
+        
+        # populate the dataframe
+        if keys == cols:
+            df.loc[i,:] = values
+        else:
+            for key,value in zip(keys,values):
+                df.loc[i,key] = value
+
+    # remove all columns with no unique values
+    for col in cols:
+        if len(np.unique(np.array(df.loc[:,col]))) == 1:
+            df = df.drop(col, 1)
+
+    # save the dataframe in an excel file
+    os.chdir("D:/Worms_Life_Sim/parameters/")
+    df.to_excel("exp_" + str(exp_num) + ".xlsx", index=False)
+
 # Combination Graph
 def combine_results(exp_num, param, iteration):
     # pick out all the correct files from the experiments folder
@@ -1626,3 +1661,76 @@ def combine_results_over_time(exp_num, param):
     plt.xlabel("Time (hrs)")
     plt.ylabel("Average Likelihood of L2d/Dauer")
     plt.legend(title=param, bbox_to_anchor=(1,1))
+
+# Combination Graph for Travel Direction
+def combine_smell_results(exp_num, param, iteration):
+    # pick out all the correct files from the experiments folder
+    os.chdir("D:/Worms_Life_Sim/experiments/")
+    exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
+    
+    # create the empty lists
+    param_value = []
+    smell_value = []
+    std_value = []
+    
+    # loop through each file from the experiment
+    for i in exp_list:
+        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        all_my_data = open_pickle(iteration)
+        
+        # define some variables
+        df = all_my_data["array"]
+        p2i = all_my_data["p_to_i"]
+        var = all_my_data["par"]
+        
+        # append values to the lists
+        param_value.append(var[param])
+        # find the average smell gene and standard deviation for the entire population
+        alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+        smell_value.append(np.mean((df[alive,p2i["smell_1"]] + df[alive,p2i["smell_2"]])/2))
+        std_value.append(np.std((df[alive,p2i["smell_1"]] + df[alive,p2i["smell_2"]])/2))
+    
+    # find and plot the line of best fit
+    m, b = np.polyfit(np.array(param_value), np.array(smell_value), 1)
+    plt.plot(np.array(param_value), m*np.array(param_value) + b, color="black")    
+    
+    # calculate correlation
+    r = stats.pearsonr(param_value, smell_value)[0]
+    r_sq = np.round(r**2, 3)
+    
+    # plot the data points
+    plt.errorbar(param_value, smell_value, yerr=std_value, marker="o", ls="none", color="tab:blue")
+    plt.yticks([0.28,0.5,0.72], ["nbrs\n 0.28", "equal\n 0.50", "food\n 0.72"])
+    plt.ylim(0.25,0.75)
+    plt.title("All Runs of Experiment " + str(exp_num) + " at Time Point " + str(iteration))
+    plt.xlabel("Parameter Varied : " + param)
+    plt.ylabel("Avg Weight of Factors for Travel Direction")
+    plt.text(max(param_value), 0.72, "R² = " + str(r_sq), ha="right")
+    plt.text(max(param_value), 0.7, "m = " + str(np.round(m,3)), ha="right")
+
+# Make a Histogram of Smell Gene Results
+def count_smell_results(which_exp=[4,5,6,7], iteration=30000):
+    # create the empty list
+    smell_value = []
+    
+    # loop through the experiments
+    for exp in which_exp:
+        # pick out all the correct files from the experiments folder
+        os.chdir("D:/Worms_Life_Sim/experiments/")
+        exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp)]
+        
+        # loop through each file from the experiment
+        for i in exp_list:
+            os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+            all_my_data = open_pickle(iteration)
+            
+            # define some variables
+            df = all_my_data["array"]
+            p2i = all_my_data["p_to_i"]
+            
+            # find the average smell gene for the entire population
+            alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
+            smell_value.append(np.mean((df[alive,p2i["smell_1"]] + df[alive,p2i["smell_2"]])/2))
+    
+    f = sns.displot(smell_value, kde=True)
+    f.set_axis_labels("Avg Weight of Factors for Travel Direction", "Number of Experiments")
