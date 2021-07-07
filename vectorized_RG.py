@@ -764,7 +764,7 @@ def food_map(grid, var, grid_dim):
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
     plt.axis([0,var["grid_len"],0,var["grid_len"]])
-    plt.colorbar()
+    plt.colorbar(label="Units of Bacteria")
 
 # Graph the Pheromone Locations
 def pher_map(grid, var, grid_dim):
@@ -788,7 +788,7 @@ def prob_move(var):
         for j in range(0,(var["pher_max"]+1)):
             z[i,j] = var["smell_gene"][0]*(1-(i/var["food_max"])) + (1-var["smell_gene"][0])*(j/var["pher_max"])
     plt.pcolormesh(x, y, z, cmap="Blues", shading="auto")
-    plt.title("Probability of Moving")
+    plt.title("Probability of Traveling")
     plt.xlabel("Amount of Food")
     plt.ylabel("Amount of Pheromones")
     plt.axis([0,var["food_max"],0,var["pher_max"]])
