@@ -19,5 +19,5 @@ Files
 
 - The file called "vectorized_RG.py" contains the model as well as various different functions for graphing the resulting data.
 - The file called "modified_RG.py" also contains the model, but this script is prepared to run in the terminal. It requires user input to run.
-- The file called "Worms_Life_Model.ipynb" is used to graph the results of each simulation. Just change the location of the file and it will create many figures.
+- The file called "Worms_Life_Model.ipynb" is used to graph the results of each simulation. Just change the location and it will create many figures.
 - The file called "muller_code.R" creates a couple of muller plots, but is used in conjunction with one of the functions in Python and the data from the simulation.
