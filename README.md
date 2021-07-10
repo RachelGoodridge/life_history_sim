@@ -1,4 +1,4 @@
-### Simulating the Evolutionary Effects of Environmental and Genetic Variation on Life History in Caenorhabditis
+### Simulating the Evolutionary Effects of Environmental and Genetic Variation on Life History in *Caenorhabditis*
 
 #### Abstract
 Nematodes such as *Caenorhabditis elegans*, *C. briggsae*, *C. remanei*, and *C. nigoni* are model organisms that primarily reside in rotting fruit and plant matter, feeding on
