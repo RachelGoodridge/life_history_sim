@@ -826,7 +826,94 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,15000,20000,25000,30000], food_freq=(math.pi/4380),
         food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=100):
+    """ The master function that runs the program and calls all the functions above. Variables are created within this function and then passed into the other functions. 
     
+    Parameters
+    ----------
+    iterations : a positive integer
+        The number of times to loop through all the functions in the program. Represents hours. Usually set to 30,000.
+    food_start : an integer or a float
+        The amount of bacteria in each square at the beginning of every new patch (or when a new patch appears).
+    food_len : an integer
+        The length of the side of a food patch in terms of spaces on the grid. They are square.
+    space_between : an integer
+        The length of the space between food patches in terms of spaces on the grid.
+    patches : an integer
+        The number of food patches per row/column of the grid. Used to determine the grid dimensions. 
+    food_max : an integer or a float
+        The carrying capacity for bacteria per space on the grid and also per patch in that location.
+    seed : an integer
+        Controls the random choices made throughout the program. Selecting the same seed will produce the same outcome.
+    food_growth : a list of two non-negative integers or floats
+        The first number is the growth rate of the bacteria. The second number introduces/controls the fluctuation of that growth rate based on a normal distribution.
+    pher_decay : a negative integer or float
+        The rate of decay of all pheromones on the grid at each time step.
+    pop_size : a positive integer
+        The size of the initial population of worms, and thus, the number of unique lineages throughout the simulation.
+    energy : a positive integer or float
+        The factor used to multiply by the proportions of energy necessary for each life stage to reach the required/gained/spent amount.
+    pher_max : an integer or float
+        The maximum amount of pheromones that can be perceived by a worm.
+    genes : a positive integer
+        The number of neutral genes each worm stores. More genes will improve lineage tracking, but take up more storage space.
+    eggs : a float between 0 and 1
+        The probability an adult female/herm will lay an egg at each time step, given she has enough energy (and sperm). Re-calculated during every iteration.
+    grow_time : 
+        
+    dauer_weight : 
+        
+    food_eaten : 
+        
+    smell_weight : 
+        
+    mutation_rate : 
+        
+    gender : 
+        
+    dauer_gene : 
+        
+    num_patches : 
+        
+    pher : 
+        
+    genders_prob : 
+        
+    smell_gene : 
+        
+    gender_prob : 
+        
+    energy_used : 
+        
+    food_repop : 
+        
+    sperm_bias : 
+        
+    dictionary : 
+        
+    save : 
+        
+    food_freq : 
+        
+    food_amp : 
+        
+    dauer_age : 
+        
+    L2d_cutoff : 
+        
+    pop_max : 
+        
+    dauer_die : 
+        
+    gp_map : 
+        
+    save_freq : 
+    
+    
+    Returns
+    -------
+    all_dict : 
+        
+    """
     if dictionary:
         all_dict = dictionary
 
@@ -836,7 +923,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         assert food_repop >= 0 and food_repop <= 1
         assert food_amp >= 0 and food_amp <= min(food_repop, 1-food_repop)
         
-        # variables
+        # create a variables dictionary
         var = {"food_start":food_start, "food_len":food_len, "space_between":space_between, "patches":patches,
                "food_max": food_max, "food_growth":food_growth, "pher_decay":pher_decay, "pop_size":pop_size,
                "energy":energy, "pher_max":pher_max, "genes":genes, "eggs":eggs, "grow_time":grow_time,
@@ -851,57 +938,58 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         # start off the random number generator
         np.random.seed(var["seed"])
         
-        # stages
+        # list all the life stages
         stage = ["egg", "L1", "L2", "L2d", "L3", "dauer", "L4", "adult", "old"]
         s2i = {x:i for i,x in enumerate(stage)}
         i2s = {i:x for i,x in enumerate(stage)}
         
-        # genders
+        # list the genders
         g2i = {"herm":0, "female":0, "male":1}
     
         # x and y
         xx = np.tile(np.arange(var["grid_len"]), var["grid_len"])
         yy = np.repeat(np.arange(var["grid_len"]), var["grid_len"])
         
-        # food
+        # setup the food to go on the grid later
         food = np.zeros((var["grid_len"], var["grid_len"]), order = "F")
         corners = [i for i in range(0, var["grid_len"], var["food_len"] + var["space_between"])]
-        food_patches = np.array([[i,j] for i in corners for j in corners])
-        which_patches = np.random.choice(range(len(food_patches)), size=var["num_patches"], replace=False)
+        food_patches = np.array([[i,j] for i in corners for j in corners])  # all possible locations
+        which_patches = np.random.choice(range(len(food_patches)), size=var["num_patches"], replace=False)  # chosen starting locations
         for i in which_patches:
+            # populate those chosen starting locations
             x = food_patches[i][0]
             y = food_patches[i][1]
             food[x:(x + var["food_len"]), y:(y + var["food_len"])] = var["food_start"]
             
-        # grid
+        # create the grid with many layers
         grid_dim = {"x":0, "y":1, "food":2, "pher":3, "f_egg":4, "f_L1":5, "f_L2":6, "f_L2d":7, "f_L3":8,
                     "f_dauer":9, "f_L4":10, "f_adult":11, "f_old":12, "m_egg":13, "m_L1":14, "m_L2":15,
                     "m_L2d":16, "m_L3":17, "m_dauer":18, "m_L4":19, "m_adult":20, "m_old":21}
         grid = np.zeros((var["grid_len"], var["grid_len"], len(grid_dim)), order = "F")
         grid[:, :, grid_dim["x"]] = xx.reshape((var["grid_len"], var["grid_len"]), order = "F")
         grid[:, :, grid_dim["y"]] = yy.reshape((var["grid_len"], var["grid_len"]), order = "F")
-        grid[:, :, grid_dim["food"]] = food
+        grid[:, :, grid_dim["food"]] = food  # add the food on there
         
-        # neighbors
+        # create empty neighboring grids
         north = np.zeros(np.shape(grid), order = "F")
         south = np.zeros(np.shape(grid), order = "F")
         west = np.zeros(np.shape(grid), order = "F")
         east = np.zeros(np.shape(grid), order = "F")
         
-        # properties
+        # list the properties of each worm
         prop = ["name", "gender", "food_count", "stage", "x_loc", "y_loc", "loc", "energy", "dauer_1",
                 "dauer_2", "smell_1", "smell_2", "parent_1", "parent_2", "L1", "L2", "L2d", "L3", "dauer",
                 "L4", "adult", "old", "alive", "decision"]
         prop += ["gene_" + str(i) for i in range(var["genes"]*2)]
         p2i = {x:i for i,x in enumerate(prop)}
         
-        # dataframe
+        # setup the dataframe (numpy array) containing the initial worms and their information
         df=np.nan*np.zeros((var["pop_max"],len(prop)),order="F")
         df[:,p2i["name"]]=np.arange(var["pop_max"])
         df[:var["pop_size"],p2i["gender"]]=np.random.choice(var["gender"],p=var["gender_prob"],size=var["pop_size"])
         df[:,p2i["food_count"]]=0
-        df[:,p2i["stage"]]=0
-        worm_patch = food_patches[np.random.choice(which_patches,size=var["pop_size"])]
+        df[:,p2i["stage"]]=0  # always start as an egg
+        worm_patch = food_patches[np.random.choice(which_patches,size=var["pop_size"])]  # each worm picks a patch
         df[:var["pop_size"],p2i["x_loc"]]=np.random.choice(range(var["food_len"]),size=var["pop_size"]) + worm_patch[:,0]
         df[:var["pop_size"],p2i["y_loc"]]=np.random.choice(range(var["food_len"]),size=var["pop_size"]) + worm_patch[:,1]
         df[:var["pop_size"],p2i["loc"]]=np.ravel_multi_index([df[:var["pop_size"],p2i["x_loc"]].astype(int),df[:var["pop_size"],p2i["y_loc"]].astype(int)],grid.shape[:2],order="F")
@@ -909,15 +997,15 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         df[:var["pop_size"],p2i["dauer_1"]]=np.random.uniform(var["dauer_gene"][0],var["dauer_gene"][1],var["pop_size"])
         df[:var["pop_size"],p2i["dauer_2"]]=np.random.uniform(var["dauer_gene"][0],var["dauer_gene"][1],var["pop_size"])
         new_smell_1 = np.random.normal(var["smell_gene"][0],var["smell_gene"][1],size=var["pop_size"])
-        new_smell_1[new_smell_1 > 1] = 1
-        new_smell_1[new_smell_1 < 0] = 0
+        new_smell_1[new_smell_1 > 1] = 1  # to ensure this gene value stays between 0 and 1
+        new_smell_1[new_smell_1 < 0] = 0  # to ensure this gene value stays between 0 and 1
         new_smell_2 = np.random.normal(var["smell_gene"][0],var["smell_gene"][1],size=var["pop_size"])
-        new_smell_2[new_smell_2 > 1] = 1
-        new_smell_2[new_smell_2 < 0] = 0        
+        new_smell_2[new_smell_2 > 1] = 1  # to ensure this gene value stays between 0 and 1
+        new_smell_2[new_smell_2 < 0] = 0  # to ensure this gene value stays between 0 and 1    
         df[:var["pop_size"],p2i["smell_1"]]=new_smell_1
         df[:var["pop_size"],p2i["smell_2"]]=new_smell_2
-        df[:var["pop_size"],p2i["parent_1"]]=-1
-        df[:var["pop_size"],p2i["parent_2"]]=-1
+        df[:var["pop_size"],p2i["parent_1"]]=-1  # the original worms don't have a known parent
+        df[:var["pop_size"],p2i["parent_2"]]=-1  # the original worms don't have a known parent
         df[:,p2i["L1"]:p2i["gene_0"]]=0
         df[:var["pop_size"],p2i["alive"]]=1
         for i in range(0,var["genes"]*2,2):
@@ -925,7 +1013,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         for i in range(1,var["genes"]*2,2):
             df[:var["pop_size"], p2i["gene_0"]+i] = (df[:var["pop_size"], p2i["name"]]*2)
         
-        # mates array
+        # create an empty array for the mates list
         mates = np.array([], dtype=np.int64).reshape(0,2)
         
         # dictionary for all variables
@@ -948,7 +1036,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         grow_food(all_dict["grid_amt"], all_dict["par"], all_dict["grid_layer"])
         decay_pheromones(all_dict["grid_amt"], all_dict["par"], all_dict["grid_layer"])
         update_grid(all_dict["grid_amt"], all_dict["par"], all_dict["stage_list"], all_dict["grid_layer"], all_dict["p_to_i"], all_dict["array"])
-        all_dict["par"]["iter"] += 1
+        all_dict["par"]["iter"] += 1  # keep track of the iteration number
         if all_dict["par"]["iter"] in all_dict["par"]["save"]:
             # take a snapshot of the current information
             file_name = "all_info_saved_iter_" + str(all_dict["par"]["iter"]) + ".p"
