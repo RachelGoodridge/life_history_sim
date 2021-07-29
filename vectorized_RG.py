@@ -851,39 +851,40 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
     pop_size : a positive integer
         The size of the initial population of worms, and thus, the number of unique lineages throughout the simulation.
     energy : a positive integer or float
-        The factor used to multiply by the proportions of energy necessary for each life stage to reach the required/gained/spent amount.
+        The factor used to multiply by the energy proportions for each life stage to determine the maximum energy a worm may have after molting.
     pher_max : an integer or float
         The maximum amount of pheromones that can be perceived by a worm.
     genes : a positive integer
         The number of neutral genes each worm stores. More genes will improve lineage tracking, but take up more storage space.
     eggs : a float between 0 and 1
         The probability an adult female/herm will lay an egg at each time step, given she has enough energy (and sperm). Re-calculated during every iteration.
-    grow_time : 
-        
-    dauer_weight : 
-        
-    food_eaten : 
-        
-    smell_weight : 
-        
-    mutation_rate : 
-        
-    gender : 
-        
-    dauer_gene : 
-        
-    num_patches : 
-        
-    pher : 
-        
-    genders_prob : 
-        
-    smell_gene : 
-        
-    gender_prob : 
-        
-    energy_used : 
-        
+    grow_time : a list of nine increasing integers or floats (each bigger than the last)
+        The total amount of food that must be consumed by a worm in its lifetime before it reaches the next stage. In order of the stages.
+    dauer_weight : a positive integer or float
+        The size of the mutation created in the dauer gene during reproduction, assuming there is a mutation. Based on a normal distribution centered at zero.
+    food_eaten : a list of nine integers or floats
+        The portion of food a worm will eat (if available) at each life stage, in order of the stages.
+    smell_weight : a positive integer or float
+        The size of the mutation created in the smell gene during reproduction, assuming there is a mutation. Based on a normal distribution centered at zero.
+    mutation_rate : a float between 0 and 1
+        The probability that each dauer and smell gene of each egg individually will have a mutation.
+    gender : the list [0, 1]
+        The zero refers to females/hermaphrodites and the one refers to males. A worm property.
+    dauer_gene : a list of two integers or floats (the smaller one first)
+        The range of dauer gene values in the initial worm population. The dauer gene values will be uniformly distributed across this range to start. 
+    num_patches : a positive integer
+        The number of patches that a simulation will have at the beginning. Must not exceed the number of possible locations for patches.
+    pher : a list of nine integers or floats
+        The amount of pheromones a worm will release at every time step, based on and in order of the life stages
+    genders_prob : the nested list [[0.99, 0.01], [0.5, 0.5]]
+        The first interior list [0.99, 0.01] is the probability that a worm will be hermaphrodite or male, respectively. The chosen reproductive system is androdioecy.
+        The second interior list [0.5, 0.5] is the probability that a worm will be female or male, respectively. The chosen reproductive system is dioecy.
+    smell_gene : a list of two integers or floats
+        The distribution of smell gene values in the initial worm population. Uses a normal distribution centered around the first integer/float with st dev of the second integer/float.
+    gender_prob : either 0 or 1
+        The choice of reproductive system. Select zero and the chosen reproductive system is androdioecy. Select one and the chosen reproductive system is dioecy.
+    energy_used : a list of nine integers or floats
+        The amount of energy each worm spends/metabolizes at each time step, in order of the life stages. Also helps determine the maximum energy a worm may have after molting.
     food_repop : 
         
     sperm_bias : 
