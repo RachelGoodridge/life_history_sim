@@ -885,35 +885,37 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         The choice of reproductive system. Select zero and the chosen reproductive system is androdioecy. Select one and the chosen reproductive system is dioecy.
     energy_used : a list of nine integers or floats
         The amount of energy each worm spends/metabolizes at each time step, in order of the life stages. Also helps determine the maximum energy a worm may have after molting.
-    food_repop : 
-        
-    sperm_bias : 
-        
-    dictionary : 
-        
-    save : 
-        
-    food_freq : 
-        
-    food_amp : 
-        
-    dauer_age : 
-        
-    L2d_cutoff : 
-        
-    pop_max : 
-        
-    dauer_die : 
-        
-    gp_map : 
-        
-    save_freq : 
-    
+    food_repop : a float between 0 and 1
+        The probability that a new patch of food will appear at each time step. The midline of the patch repopulation probability / seasonality sine curve.
+    sperm_bias : a float between 0 and 1
+        The probability that a female/hermaphrodite with sperm will choose to use it. Maintains low male presence in hermaphrodite populations. Should be set to 1 in the male/female case.
+    dictionary : either a boolean (False if no dictionary) or a dictionary
+        The master dictionary that contains all variables for running an experiment, passed in from a previous simulation, with the intention of continuing that simulation. Note the seed will change undetected.
+        If passing in a dictionary from a previous simulation, it must have all the same variables as listed in the experimental setup below. Then, you can "pick up where you left off."
+    save : a list of positive integers
+        The time points at which snapshots of information will be taken. At these points, a pickle of the master dictionary will be stored and you will be informed in the output.
+    food_freq : an integer or float
+        The period of the patch repopulation probability / seasonality sine curve, determines the frequency of the fluctuations in food patch replacement. The default is one year.
+    food_amp : an integer or float between 0 and min(food_repop, 1 - food_repop)
+        The amplitude of the patch repopulation probability / seasonality sine curve, determines the intensity of the fluctuations in food patch replacement. The default is zero or no fluctuation.
+    dauer_age : an integer
+        The number of time steps a worm in dauer will survive before dying of starvation. The default is 4 months.
+    L2d_cutoff : a float between 0 and 1
+        The threshold for determing which worms have spent too long in L2d, based on their genetics and the genotype-to-phenotype mapping component. These worms will enter dauer. See "prob_dauer" graph.
+    pop_max : a large integer
+        The size of the numpy array that contains all the living worms in the simulation. An array too small will create an error because it cannot contain all living worms. A very large array may be less efficient.
+    dauer_die : a float between 0 and 1
+        The probability that a worm entering dauer will immediately be culled.
+    gp_map : an integer or float
+        The genotype-to-phenotype mapping component that controls the strictness of the relationship between the dauer gene and the probability a worm actually enters dauer. See "prob_dauer" graph.
+    save_freq : a positive integer
+        The frequency with which lineage tracking and allele tracking is performed and stored. This information is recorded every 100 time steps by default.
     
     Returns
     -------
-    all_dict : 
-        
+    all_dict : a dictionary
+        The master dictionary that contains all the variables resulting at the end of the experiment including var, stage, s2i, i2s, g2i, grid_dim, grid, north, south, west, east, prop, p2i, df, and mates.
+        This information is also periodically stored in a pickle, according to the paramter "save," and can be used to run continuations of the same experimental trial.
     """
     if dictionary:
         all_dict = dictionary
