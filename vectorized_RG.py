@@ -1080,6 +1080,17 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
 
 # Graph the Food Locations
 def food_map(grid, var, grid_dim):
+    """ Create a 2D heatmap of the torus, showing food density by color intensity.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    grid_dim : a dictionary
+        Enumerates all layers of the grid. 
+    """
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     z = copy.copy(grid[:,:,grid_dim["food"]])
     z[z==0] = np.nan
@@ -1092,6 +1103,17 @@ def food_map(grid, var, grid_dim):
 
 # Graph the Pheromone Locations
 def pher_map(grid, var, grid_dim):
+    """ Create a 2D heatmap of the torus, showing pheromone density by color intensity.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    grid_dim : a dictionary
+        Enumerates all layers of the grid. 
+    """
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     z = copy.copy(grid[:,:,grid_dim["pher"]])
     z[z==0] = np.nan
@@ -1104,6 +1126,13 @@ def pher_map(grid, var, grid_dim):
 
 # Graph the Probability of Traveling
 def prob_move(var):
+    """ Create a heatmap showing the probability of a worm to travel based on the amount of food and pheromones near it.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters. 
+    """
     # assumptions: the amount of food/pheromone has a set max and the average smell gene is constant
     x, y = np.mgrid[slice(0,(var["food_max"]+1)), slice(0,(var["pher_max"]+1))]
     z = np.zeros(((var["food_max"]+1),(var["pher_max"]+1)))

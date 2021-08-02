@@ -12,6 +12,17 @@ import sys
 
 # Food Growth
 def grow_food(grid, var, grid_dim):
+    """ Bacterial growth occurs logistically at every time step.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters. 
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    """
     grow_rate = np.random.normal(var["food_growth"][0], var["food_growth"][1])
     food_max = grid[:,:,grid_dim["food"]] - (grid[:,:,grid_dim["food"]] % (-1*var["food_max"]))
     food_max[food_max < var["food_max"]] = var["food_max"]
@@ -22,14 +33,42 @@ def grow_food(grid, var, grid_dim):
         corners = [i for i in range(0, var["grid_len"], var["food_len"] + var["space_between"])]
         i,j = np.random.choice(corners,size=2)
         grid[:,:,grid_dim["food"]][i:(i + var["food_len"]), j:(j + var["food_len"])] += var["food_start"]
-    
+
 # Pheromone Decay
 def decay_pheromones(grid, var, grid_dim):
+    """ Pheromones decay exponentially at every time step.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters. 
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    """
     grid[:,:,grid_dim["pher"]] = grid[:,:,grid_dim["pher"]]*np.exp(var["pher_decay"])
     grid[:,:,grid_dim["pher"]][grid[:,:,grid_dim["pher"]]<0] = 0
 
 # Update Worm Locations
 def update_grid(grid, var, stage, grid_dim, p2i, df):
+    """ Update the grid with the most recent positions of all the worms.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    stage : a list
+        Lists all the stages of a worm, starting from "egg" and ending with a stage called "old."
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     df2 = df[df[:,p2i["alive"]].astype(bool)]
     df2 = df2[:,[p2i["x_loc"],p2i["y_loc"],p2i["stage"],p2i["gender"]]]
     # stretch out properties based on unique x, y, stage, and gender
@@ -43,6 +82,26 @@ def update_grid(grid, var, stage, grid_dim, p2i, df):
 
 # Update Mates Array
 def list_sperm(mates, s2i, prop, df, p2i):
+    """ Finds all the adult males and adult herm/females in the same location and adds to a list of mates.
+    
+    Parameters
+    ----------
+    mates : a 2D numpy array
+        Contains a list of mates as ordered pairs [herm/female, male] in each row.
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    prop : a list
+        Lists all the properties of a worm (eg name, gender, etc).
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    
+    Returns
+    -------
+    mates : a 2D numpy array
+        Contains a list of mates as ordered pairs [herm/female, male] in each row.
+    """
     # only keep the males and females that are alive
     sorter = np.argsort(df[:,p2i["name"]].astype(int))
     male_index = sorter[np.searchsorted(df[:,p2i["name"]].astype(int), mates[:,1], sorter=sorter)]
@@ -65,6 +124,23 @@ def list_sperm(mates, s2i, prop, df, p2i):
 
 # Update Neighbors
 def update_nbrs(grid, north, south, west, east, var):
+    """ Uses the main grid to create four nearly identical North, South, West, and East grids.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    north : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit north. 
+    south : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit south.
+    west : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit west.
+    east : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit east.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # North in xy coordinates is West in python arrays
     north[:, :(var["grid_len"]-1), :] = grid[:, 1:var["grid_len"], :]
     north[:, (var["grid_len"]-1), :] = grid[:, 0, :]
@@ -80,6 +156,19 @@ def update_nbrs(grid, north, south, west, east, var):
 
 # Subtract Energy from Worms
 def metabolism(df, s2i, p2i, var):
+    """ Subtracts energy from all worms proportional to their stage and kills off worms that have no energy.
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    s2i : a dictionary
+        Translates from worm stage to an index. 
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # find all worms that are alive
     every = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     # kill off dauer worms after 4 months
@@ -108,6 +197,31 @@ def metabolism(df, s2i, p2i, var):
 
 # Move Chosen Worms
 def move(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
+    """ Worms decide in which direction they will travel and then they move there.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    s2i : a dictionary
+        Translates from worm stage to an index. 
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    north : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit north. 
+    south : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit south.
+    west : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit west.
+    east : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit east.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."        
+    """
     # find worms alive and decision True
     every = np.array(np.where((df[:,p2i["alive"]]==1) & (df[:,p2i["decision"]]==1)))[0]
     
@@ -174,6 +288,23 @@ def move(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
 
 # Worms Leave Pheromones
 def deposit_pher(grid, var, s2i, grid_dim, p2i, df):
+    """ Worms will deposit pheromones proportional to their size at every time step.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    s2i : a dictionary
+        Translates from worm stage to an index. 
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     every = np.array(np.where((df[:,p2i["alive"]]==1) & (df[:,p2i["stage"]]!=s2i["egg"])))[0]
     # pher amount based on stage and placed in the correct location
     pher_amt = np.bincount(df[every,p2i["loc"]].astype(int), weights = np.array(var["pher"])[df[every,p2i["stage"]].astype(int)])
@@ -185,6 +316,31 @@ def deposit_pher(grid, var, s2i, grid_dim, p2i, df):
 
 # Worms Advance Stages
 def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
+    """ Worms will transition into the next life stage given they have eaten enough food. Some must decide which stage will be next. Some will die.
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms. 
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    north : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit north. 
+    south : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit south.
+    west : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit west.
+    east : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit east.        
+    """
     # transition to next stage for all except L1, L2d, dauer, and old
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     # pick out the worms that are in pick_stage
@@ -308,6 +464,23 @@ def grow(df, var, s2i, p2i, grid, grid_dim, north, south, west, east):
 
 # Worms Eat Food
 def eat(df, grid, var, s2i, grid_dim, p2i):
+    """ Worms will eat food at every time step (if it is available) and portions taken will be proportional to their stage.
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."        
+    """
     # add food count to eggs
     egg = np.array(np.where((df[:,p2i["alive"]]==1) & (df[:,p2i["stage"]]==s2i["egg"])))[0]
     df[egg, p2i["food_count"]] += 1
@@ -357,6 +530,30 @@ def eat(df, grid, var, s2i, grid_dim, p2i):
 
 # Worms Reproduce
 def reproduce(df, mates, var, s2i, g2i, prop, p2i):
+    """ Hermaphrodites/females will lay eggs if they have energy/sperm. Eggs will take on properties based on the parents and inherit genes with the chance for mutation.
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    mates : a 2D numpy array
+        Contains a list of mates as ordered pairs [herm/female, male] in each row.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    g2i : a dictionary
+        Translates from worm sex (gender) to an index.
+    prop : a list
+        Lists all the properties of a worm (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    
+    Returns
+    -------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     # find all the adult females/herms with energy
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     adult_f = alive[((df[alive,p2i["gender"]]==g2i["herm"]) & (df[alive,p2i["stage"]]==s2i["adult"]) & (df[alive,p2i["energy"]]>=1))]
@@ -550,6 +747,17 @@ def reproduce(df, mates, var, s2i, g2i, prop, p2i):
 
 # Count Time Spent per Stage
 def pass_time(df, s2i, p2i):
+    """ Worms will count how long they've spent in each stage.
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."        
+    """
     not_egg = np.array(np.where((df[:,p2i["alive"]]==1) & (df[:,p2i["stage"]]!=s2i["egg"])))[0]
     # convert from stage index to property index
     stages_index = df[not_egg, p2i["stage"]].astype(int)
@@ -559,6 +767,31 @@ def pass_time(df, s2i, p2i):
 
 # Worms Decide to Travel
 def decide(grid, df, var, s2i, grid_dim, north, south, west, east, p2i):
+    """ Worms will decide whether or not to travel to a new location.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    north : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit north. 
+    south : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit south.
+    west : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit west.
+    east : a 3D numpy array
+        Contains information identical to the "grid" but shifted one unit east.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."        
+    """
     # find all the food and surrounding pheromones
     phers = north[:,:,grid_dim["pher"]] + south[:,:,grid_dim["pher"]] + west[:,:,grid_dim["pher"]] + east[:,:,grid_dim["pher"]] + grid[:,:,grid_dim["pher"]]
     food = grid[:,:,grid_dim["food"]]
@@ -591,7 +824,97 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         gender_prob=0, energy_used=[0,0.5,1,1,2,0,4,8,4], food_repop=(1/15), sperm_bias=0.014, dictionary=False,
         save=[1,250,500,1000,1500,2000,5000,10000,15000,20000,25000,30000], food_freq=(math.pi/4380),
         food_amp=0, dauer_age=2880, L2d_cutoff=0.90, pop_max=1000000, dauer_die=0.98, gp_map=3, save_freq=100):
+    """ The master function that runs the program and calls all the functions above. Variables are created within this function and then passed into the other functions. 
     
+    Parameters
+    ----------
+    iterations : a positive integer
+        The number of times to loop through all the functions in the program. Represents hours. Usually set to 30,000.
+    food_start : an integer or a float
+        The amount of bacteria in each square at the beginning of every new patch (or when a new patch appears).
+    food_len : an integer
+        The length of the side of a food patch in terms of spaces on the grid. They are square.
+    space_between : an integer
+        The length of the space between food patches in terms of spaces on the grid.
+    patches : an integer
+        The number of food patches per row/column of the grid. Used to determine the grid dimensions. 
+    food_max : an integer or a float
+        The carrying capacity for bacteria per space on the grid and also per patch in that location.
+    seed : an integer
+        Controls the random choices made throughout the program. Selecting the same seed will produce the same outcome.
+    food_growth : a list of two non-negative integers or floats
+        The first number is the growth rate of the bacteria. The second number introduces/controls the fluctuation of that growth rate based on a normal distribution.
+    pher_decay : a negative integer or float
+        The rate of decay of all pheromones on the grid at each time step.
+    pop_size : a positive integer
+        The size of the initial population of worms, and thus, the number of unique lineages throughout the simulation.
+    energy : a positive integer or float
+        The factor used to multiply by the energy proportions for each life stage to determine the maximum energy a worm may have after molting.
+    pher_max : an integer or float
+        The maximum amount of pheromones that can be perceived by a worm.
+    genes : a positive integer
+        The number of neutral genes each worm stores. More genes will improve lineage tracking, but take up more storage space.
+    eggs : a float between 0 and 1
+        The probability an adult female/herm will lay an egg at each time step, given she has enough energy (and sperm). Re-calculated during every iteration.
+    grow_time : a list of nine increasing integers or floats (each bigger than the last)
+        The total amount of food that must be consumed by a worm in its lifetime before it reaches the next stage. In order of the stages.
+    dauer_weight : a positive integer or float
+        The size of the mutation created in the dauer gene during reproduction, assuming there is a mutation. Based on a normal distribution centered at zero.
+    food_eaten : a list of nine integers or floats
+        The portion of food a worm will eat (if available) at each life stage, in order of the stages.
+    smell_weight : a positive integer or float
+        The size of the mutation created in the smell gene during reproduction, assuming there is a mutation. Based on a normal distribution centered at zero.
+    mutation_rate : a float between 0 and 1
+        The probability that each dauer and smell gene of each egg individually will have a mutation.
+    gender : the list [0, 1]
+        The zero refers to females/hermaphrodites and the one refers to males. A worm property.
+    dauer_gene : a list of two integers or floats (the smaller one first)
+        The range of dauer gene values in the initial worm population. The dauer gene values will be uniformly distributed across this range to start. 
+    num_patches : a positive integer
+        The number of patches that a simulation will have at the beginning. Must not exceed the number of possible locations for patches.
+    pher : a list of nine integers or floats
+        The amount of pheromones a worm will release at every time step, based on and in order of the life stages
+    genders_prob : the nested list [[0.99, 0.01], [0.5, 0.5]]
+        The first interior list [0.99, 0.01] is the probability that a worm will be hermaphrodite or male, respectively. The chosen reproductive system is androdioecy.
+        The second interior list [0.5, 0.5] is the probability that a worm will be female or male, respectively. The chosen reproductive system is dioecy.
+    smell_gene : a list of two integers or floats
+        The distribution of smell gene values in the initial worm population. Uses a normal distribution centered around the first integer/float with st dev of the second integer/float.
+    gender_prob : either 0 or 1
+        The choice of reproductive system. Select zero and the chosen reproductive system is androdioecy. Select one and the chosen reproductive system is dioecy.
+    energy_used : a list of nine integers or floats
+        The amount of energy each worm spends/metabolizes at each time step, in order of the life stages. Also helps determine the maximum energy a worm may have after molting.
+    food_repop : a float between 0 and 1
+        The probability that a new patch of food will appear at each time step. The midline of the patch repopulation probability / seasonality sine curve.
+    sperm_bias : a float between 0 and 1
+        The probability that a female/hermaphrodite with sperm will choose to use it. Maintains low male presence in hermaphrodite populations. Should be set to 1 in the male/female case.
+    dictionary : either a boolean (False if no dictionary) or a dictionary
+        The master dictionary that contains all variables for running an experiment, passed in from a previous simulation, with the intention of continuing that simulation. Note the seed will change undetected.
+        If passing in a dictionary from a previous simulation, it must have all the same variables as listed in the experimental setup below. Then, you can "pick up where you left off."
+    save : a list of positive integers
+        The time points at which snapshots of information will be taken. At these points, a pickle of the master dictionary will be stored and you will be informed in the output.
+    food_freq : an integer or float
+        The period of the patch repopulation probability / seasonality sine curve, determines the frequency of the fluctuations in food patch replacement. The default is one year.
+    food_amp : an integer or float between 0 and min(food_repop, 1 - food_repop)
+        The amplitude of the patch repopulation probability / seasonality sine curve, determines the intensity of the fluctuations in food patch replacement. The default is zero or no fluctuation.
+    dauer_age : an integer
+        The number of time steps a worm in dauer will survive before dying of starvation. The default is 4 months.
+    L2d_cutoff : a float between 0 and 1
+        The threshold for determing which worms have spent too long in L2d, based on their genetics and the genotype-to-phenotype mapping component. These worms will enter dauer. See "prob_dauer" graph.
+    pop_max : a large integer
+        The size of the numpy array that contains all the living worms in the simulation. An array too small will create an error because it cannot contain all living worms. A very large array may be less efficient.
+    dauer_die : a float between 0 and 1
+        The probability that a worm entering dauer will immediately be culled.
+    gp_map : an integer or float
+        The genotype-to-phenotype mapping component that controls the strictness of the relationship between the dauer gene and the probability a worm actually enters dauer. See "prob_dauer" graph.
+    save_freq : a positive integer
+        The frequency with which lineage tracking and allele tracking is performed and stored. This information is recorded every 100 time steps by default.
+    
+    Returns
+    -------
+    all_dict : a dictionary
+        The master dictionary that contains all the variables resulting at the end of the experiment including var, stage, s2i, i2s, g2i, grid_dim, grid, north, south, west, east, prop, p2i, df, and mates.
+        This information is also periodically stored in a pickle, according to the paramter "save," and can be used to run continuations of the same experimental trial.
+    """
     if dictionary:
         all_dict = dictionary
 
@@ -601,7 +924,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         assert food_repop >= 0 and food_repop <= 1
         assert food_amp >= 0 and food_amp <= min(food_repop, 1-food_repop)
         
-        # variables
+        # create a variables dictionary
         var = {"food_start":food_start, "food_len":food_len, "space_between":space_between, "patches":patches,
                "food_max": food_max, "food_growth":food_growth, "pher_decay":pher_decay, "pop_size":pop_size,
                "energy":energy, "pher_max":pher_max, "genes":genes, "eggs":eggs, "grow_time":grow_time,
@@ -616,57 +939,58 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         # start off the random number generator
         np.random.seed(var["seed"])
         
-        # stages
+        # list all the life stages
         stage = ["egg", "L1", "L2", "L2d", "L3", "dauer", "L4", "adult", "old"]
         s2i = {x:i for i,x in enumerate(stage)}
         i2s = {i:x for i,x in enumerate(stage)}
         
-        # genders
+        # list the genders
         g2i = {"herm":0, "female":0, "male":1}
     
         # x and y
         xx = np.tile(np.arange(var["grid_len"]), var["grid_len"])
         yy = np.repeat(np.arange(var["grid_len"]), var["grid_len"])
         
-        # food
+        # setup the food to go on the grid later
         food = np.zeros((var["grid_len"], var["grid_len"]), order = "F")
         corners = [i for i in range(0, var["grid_len"], var["food_len"] + var["space_between"])]
-        food_patches = np.array([[i,j] for i in corners for j in corners])
-        which_patches = np.random.choice(range(len(food_patches)), size=var["num_patches"], replace=False)
+        food_patches = np.array([[i,j] for i in corners for j in corners])  # all possible locations
+        which_patches = np.random.choice(range(len(food_patches)), size=var["num_patches"], replace=False)  # chosen starting locations
         for i in which_patches:
+            # populate those chosen starting locations
             x = food_patches[i][0]
             y = food_patches[i][1]
             food[x:(x + var["food_len"]), y:(y + var["food_len"])] = var["food_start"]
             
-        # grid
+        # create the grid with many layers
         grid_dim = {"x":0, "y":1, "food":2, "pher":3, "f_egg":4, "f_L1":5, "f_L2":6, "f_L2d":7, "f_L3":8,
                     "f_dauer":9, "f_L4":10, "f_adult":11, "f_old":12, "m_egg":13, "m_L1":14, "m_L2":15,
                     "m_L2d":16, "m_L3":17, "m_dauer":18, "m_L4":19, "m_adult":20, "m_old":21}
         grid = np.zeros((var["grid_len"], var["grid_len"], len(grid_dim)), order = "F")
         grid[:, :, grid_dim["x"]] = xx.reshape((var["grid_len"], var["grid_len"]), order = "F")
         grid[:, :, grid_dim["y"]] = yy.reshape((var["grid_len"], var["grid_len"]), order = "F")
-        grid[:, :, grid_dim["food"]] = food
+        grid[:, :, grid_dim["food"]] = food  # add the food on there
         
-        # neighbors
+        # create empty neighboring grids
         north = np.zeros(np.shape(grid), order = "F")
         south = np.zeros(np.shape(grid), order = "F")
         west = np.zeros(np.shape(grid), order = "F")
         east = np.zeros(np.shape(grid), order = "F")
         
-        # properties
+        # list the properties of each worm
         prop = ["name", "gender", "food_count", "stage", "x_loc", "y_loc", "loc", "energy", "dauer_1",
                 "dauer_2", "smell_1", "smell_2", "parent_1", "parent_2", "L1", "L2", "L2d", "L3", "dauer",
                 "L4", "adult", "old", "alive", "decision"]
         prop += ["gene_" + str(i) for i in range(var["genes"]*2)]
         p2i = {x:i for i,x in enumerate(prop)}
         
-        # dataframe
+        # setup the dataframe (numpy array) containing the initial worms and their information
         df=np.nan*np.zeros((var["pop_max"],len(prop)),order="F")
         df[:,p2i["name"]]=np.arange(var["pop_max"])
         df[:var["pop_size"],p2i["gender"]]=np.random.choice(var["gender"],p=var["gender_prob"],size=var["pop_size"])
         df[:,p2i["food_count"]]=0
-        df[:,p2i["stage"]]=0
-        worm_patch = food_patches[np.random.choice(which_patches,size=var["pop_size"])]
+        df[:,p2i["stage"]]=0  # always start as an egg
+        worm_patch = food_patches[np.random.choice(which_patches,size=var["pop_size"])]  # each worm picks a patch
         df[:var["pop_size"],p2i["x_loc"]]=np.random.choice(range(var["food_len"]),size=var["pop_size"]) + worm_patch[:,0]
         df[:var["pop_size"],p2i["y_loc"]]=np.random.choice(range(var["food_len"]),size=var["pop_size"]) + worm_patch[:,1]
         df[:var["pop_size"],p2i["loc"]]=np.ravel_multi_index([df[:var["pop_size"],p2i["x_loc"]].astype(int),df[:var["pop_size"],p2i["y_loc"]].astype(int)],grid.shape[:2],order="F")
@@ -674,15 +998,15 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         df[:var["pop_size"],p2i["dauer_1"]]=np.random.uniform(var["dauer_gene"][0],var["dauer_gene"][1],var["pop_size"])
         df[:var["pop_size"],p2i["dauer_2"]]=np.random.uniform(var["dauer_gene"][0],var["dauer_gene"][1],var["pop_size"])
         new_smell_1 = np.random.normal(var["smell_gene"][0],var["smell_gene"][1],size=var["pop_size"])
-        new_smell_1[new_smell_1 > 1] = 1
-        new_smell_1[new_smell_1 < 0] = 0
+        new_smell_1[new_smell_1 > 1] = 1  # to ensure this gene value stays between 0 and 1
+        new_smell_1[new_smell_1 < 0] = 0  # to ensure this gene value stays between 0 and 1
         new_smell_2 = np.random.normal(var["smell_gene"][0],var["smell_gene"][1],size=var["pop_size"])
-        new_smell_2[new_smell_2 > 1] = 1
-        new_smell_2[new_smell_2 < 0] = 0        
+        new_smell_2[new_smell_2 > 1] = 1  # to ensure this gene value stays between 0 and 1
+        new_smell_2[new_smell_2 < 0] = 0  # to ensure this gene value stays between 0 and 1    
         df[:var["pop_size"],p2i["smell_1"]]=new_smell_1
         df[:var["pop_size"],p2i["smell_2"]]=new_smell_2
-        df[:var["pop_size"],p2i["parent_1"]]=-1
-        df[:var["pop_size"],p2i["parent_2"]]=-1
+        df[:var["pop_size"],p2i["parent_1"]]=-1  # the original worms don't have a known parent
+        df[:var["pop_size"],p2i["parent_2"]]=-1  # the original worms don't have a known parent
         df[:,p2i["L1"]:p2i["gene_0"]]=0
         df[:var["pop_size"],p2i["alive"]]=1
         for i in range(0,var["genes"]*2,2):
@@ -690,7 +1014,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         for i in range(1,var["genes"]*2,2):
             df[:var["pop_size"], p2i["gene_0"]+i] = (df[:var["pop_size"], p2i["name"]]*2)
         
-        # mates array
+        # create an empty array for the mates list
         mates = np.array([], dtype=np.int64).reshape(0,2)
         
         # dictionary for all variables
@@ -713,7 +1037,7 @@ def run(iterations, food_start=500, food_len=10, space_between=10, patches=5, fo
         grow_food(all_dict["grid_amt"], all_dict["par"], all_dict["grid_layer"])
         decay_pheromones(all_dict["grid_amt"], all_dict["par"], all_dict["grid_layer"])
         update_grid(all_dict["grid_amt"], all_dict["par"], all_dict["stage_list"], all_dict["grid_layer"], all_dict["p_to_i"], all_dict["array"])
-        all_dict["par"]["iter"] += 1
+        all_dict["par"]["iter"] += 1  # keep track of the iteration number
         if all_dict["par"]["iter"] in all_dict["par"]["save"]:
             # take a snapshot of the current information
             file_name = "all_info_saved_iter_" + str(all_dict["par"]["iter"]) + ".p"
