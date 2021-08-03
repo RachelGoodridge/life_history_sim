@@ -1149,6 +1149,15 @@ def prob_move(var):
 
 # Graph the Probability of Going into Dauer
 def prob_dauer(var, time_spent):
+    """ Create a heatmap showing the probability of a worm going into dauer based on possible gene values and the amount of pheromones near it.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    time_spent : an integer or float
+        The average amount of time that all worms throughout a particular simulation spend in L2d.
+    """
     x, y = np.mgrid[slice(var["dauer_gene"][0],var["dauer_gene"][1]+0.25,0.25), slice(0,var["pher_max"]+1)]
     x_num = (var["dauer_gene"][1]-var["dauer_gene"][0])*4+1
     z = np.zeros((x_num,var["pher_max"]+1))
@@ -1170,6 +1179,19 @@ def prob_dauer(var, time_spent):
 
 # How Many Worms per Gender
 def num_gender(var, g2i, p2i, df):
+    """ Create a pie chart showing the number of males and females/herms alive at any give time point.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    g2i : a dictionary
+        Translates from worm sex (gender) to an index.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     num_gen = [np.sum(df[alive,p2i["gender"]]==g2i["male"]), np.sum(df[alive,p2i["gender"]]==g2i["herm"])]
     if (var["gender_prob"] == var["genders_prob"][0]):
@@ -1183,6 +1205,17 @@ def num_gender(var, g2i, p2i, df):
     
 # How Many Worms per Stage
 def num_stage(i2s, p2i, df):
+    """ Create a bar chart showing the number of worms in each life stage alive at any give time point.
+    
+    Parameters
+    ----------
+    i2s : a dictionary
+        Translates from an index to worm stage.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     num_stage = [np.sum(df[alive,p2i["stage"]]==stage) for stage in i2s]
     plt.bar([*range(0,len(i2s)*2,2)], num_stage, width=1, tick_label=[i2s[i] for i in range(len(i2s))])
