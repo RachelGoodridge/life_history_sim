@@ -1223,6 +1223,19 @@ def num_stage(i2s, p2i, df):
 
 # Fraction of Worms that Die in Each Stage
 def frac_dead(i2s, p2i, df, var):
+    """ Print the fraction of worms that died in each life stage (versus the total that made it to that stage) and create a pie chart showing the number of worms that died by stage.
+    
+    Parameters
+    ----------
+    i2s : a dictionary
+        Translates from an index to worm stage.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # collect all worms from old files
     combine = np.array([], dtype=np.int64).reshape(0,9)
     for i in range(var["data"]):
@@ -1264,6 +1277,19 @@ def frac_dead(i2s, p2i, df, var):
     
 # Graph the Worm Locations
 def worm_map(grid, var, grid_dim, map_type="worm"):
+    """ Create a 2D heatmap of the torus, showing worm density (of a specific stage or gender) by color intensity.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    map_type : a string (choices are "worm", "male", "female", or one of the nine life stages)
+        Specifies which worms will be displayed in the heatmap. The default shows all worms.
+    """
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     if map_type == "worm":
         z = copy.copy(np.sum(grid[:,:,grid_dim["f_egg"]:],axis=2))
@@ -1283,6 +1309,17 @@ def worm_map(grid, var, grid_dim, map_type="worm"):
 
 # Graph the Males and Females by Color
 def gender_map(grid, var, grid_dim):
+    """ Create a 2D heatmap of the torus, showing worm density by color intensity. Males are shown in red on top of females/herms shown in blue.
+    
+    Parameters
+    ----------
+    grid : a 3D numpy array
+        Contains information about each location on the grid including position, food, pheromones, and worms.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    grid_dim : a dictionary
+        Enumerates all layers of the grid.
+    """
     # male data is translucent and on top, so covers over female data a bit in those locations
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     z1 = copy.copy(np.sum(grid[:,:,[grid_dim[i] for i in grid_dim if "m_" in i]],axis=2))
