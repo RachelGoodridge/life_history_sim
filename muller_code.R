@@ -1,20 +1,20 @@
-# set the working directory
-setwd("C:/Users/Rachel/Documents/Rachel/BS MS Program/muller_plots/")
+# set the working directory to wherever you have stored the muller graph data
+setwd("D:/Worms_Life_Sim/muller_plots/")
 
 # set the population size to be the universal parent
 pop_size = 200
 
 # load required packages
-library("ggmuller")
-library("readr")
-library("plyr")
-library("dplyr")
-library("magrittr")
-library("ggplot2")
-library("tidyr")
+suppressMessages(library("ggmuller"))
+suppressMessages(library("readr"))
+suppressMessages(library("plyr"))
+suppressMessages(library("dplyr"))
+suppressMessages(library("magrittr"))
+suppressMessages(library("ggplot2"))
+suppressMessages(library("tidyr"))
 
 # read in the data and define starting values
-pop_data = read_csv("lineage_data.csv")
+pop_data = read_csv("lineage_data.csv", col_types=cols(Time=col_integer(),Identity=col_integer(),Population=col_integer()))
 start_time = min(pop_data$Time)
 start_pop_size = pop_data %>% filter(Time == start_time) %>% pull(Population) %>% sum(.)
 
