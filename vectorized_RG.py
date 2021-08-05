@@ -1149,7 +1149,7 @@ def prob_move(var):
 
 # Graph the Probability of Going into Dauer
 def prob_dauer(var, time_spent):
-    """ Create a heatmap showing the probability of a worm going into dauer based on possible gene values and the amount of pheromones near it.
+    """ Create a heatmap showing the probability of a worm going into dauer based on possible gene values and the amount of pheromones near it. The vertical line shows the average amount of time spent in L2d.
     
     Parameters
     ----------
@@ -1179,7 +1179,7 @@ def prob_dauer(var, time_spent):
 
 # How Many Worms per Gender
 def num_gender(var, g2i, p2i, df):
-    """ Create a pie chart showing the number of males and females/herms alive at any give time point.
+    """ Create a pie chart showing the number of males and females/herms alive at any given time point.
     
     Parameters
     ----------
@@ -1205,7 +1205,7 @@ def num_gender(var, g2i, p2i, df):
     
 # How Many Worms per Stage
 def num_stage(i2s, p2i, df):
-    """ Create a bar chart showing the number of worms in each life stage alive at any give time point.
+    """ Create a bar chart showing the number of worms in each life stage alive at any given time point.
     
     Parameters
     ----------
@@ -1339,6 +1339,15 @@ def gender_map(grid, var, grid_dim):
 
 # Graph the Population Size Over Time
 def worms_alive(save, all_my_data):
+    """ Create a line graph showing the number of worms alive over time throughout a simulation.
+    
+    Parameters
+    ----------
+    save : a list of positive integers
+        The time points at which snapshots of information were taken. Can be gathered by observing the file names.
+    all_my_data : a list of master dictionaries 
+        Creates a list to read in and store the master dictionary from each saved time point in a particular simulation. See "all_dict" in the function "run" above.
+    """
     # create an empty list
     alive_num = []
     
@@ -1354,6 +1363,27 @@ def worms_alive(save, all_my_data):
 
 # Calculate the Average Time Spent and Show a Boxplot
 def stage_time(stage, p2i, df, var, exclude_dauer=False):
+    """ Create boxplots showing the amount of time worms spend in each life stage, with averages printed on top.
+    
+    Parameters
+    ----------
+    stage : a list
+        Lists all the stages of a worm, starting from "egg" and ending with a stage called "old."
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    exclude_dauer : a boolean (True or False)
+        If True, excludes dauer from the boxplots, allowing the other stages to be viewed and compared more easily. 
+        If False, shows the boxplot for dauer, which will be much larger than the others.
+    
+    Returns
+    -------
+    averages[2] : a float
+        The average amount of time that all worms throughout a particular simulation spend in L2d.
+    """
     # gather all data on stages
     time_spent = np.array([], dtype=np.int64).reshape(0,8)
     for i in range(var["data"]):
@@ -1397,6 +1427,19 @@ def stage_time(stage, p2i, df, var, exclude_dauer=False):
 
 # Statistics for the Dauer Gene
 def stats_d(p2i, df, var, time_spent):
+    """ Create bar graphs showing the distribution of dauer genetics at any particular time point in a simulation. The vertical line shows the average amount of time spent in L2d.
+    
+    Parameters
+    ----------
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    time_spent : an integer or float
+        The average amount of time that all worms throughout a particular simulation spend in L2d.
+    """
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     dauer_both = np.hstack((df[alive,p2i["dauer_1"]], df[alive,p2i["dauer_2"]]))
     dauer_avg = (df[alive,p2i["dauer_1"]] + df[alive,p2i["dauer_2"]])/2
