@@ -1458,6 +1458,15 @@ def stats_d(p2i, df, var, time_spent):
 
 # Statistics for the Smell Gene
 def stats_s(p2i, df):
+    """ Create bar graphs showing the distribution of travel direction genetics at any particular time point in a simulation.
+    
+    Parameters
+    ----------
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     # x axis limits include smell genes from 0.25 - 0.75
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     smell_both = np.hstack((df[alive,p2i["smell_1"]], df[alive,p2i["smell_2"]]))
@@ -1476,6 +1485,17 @@ def stats_s(p2i, df):
 
 # Statistics for the Neutral Genes
 def stats_g(var, p2i, df):
+    """ Create bar graphs showing the number of descendants of each genetic lineage in the population at any particular time point in a simulation.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    """
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     genes = copy.copy(stats.mode(df[alive, p2i["gene_0"]:], axis=1)[0])
     genes = genes.flatten().astype(int)
@@ -1490,6 +1510,18 @@ def stats_g(var, p2i, df):
 
 # Retrieve Info from Binary Format
 def open_pickle(iteration):
+    """ Reads in the data stored (the master dictionary) from any particular time point in a simulation. The location of this data must be specified in advance.
+    
+    Parameters
+    ----------
+    iteration : an integer
+        Specifies the time point that information will be retrieved from. There must be a file saved with an information snapshot from that specific time point.
+    
+    Returns
+    -------
+    all_data : a dictionary
+        The master dictionary that contains all the variables resulting at the end of the experiment including var, stage, s2i, i2s, g2i, grid_dim, grid, north, south, west, east, prop, p2i, df, and mates.
+    """
     file_name = "all_info_saved_iter_" + str(iteration) + ".p"
     old_file = open(file_name, "rb")
     all_data = pickle.load(old_file)
@@ -1953,7 +1985,7 @@ def allele_track(var):
     plt.legend(title="Last Allele(s)", bbox_to_anchor=(1,1))
 
 # Setup for Muller Diagram
-def make_muller(pop_size):
+def make_muller(pop_size, location):
     # use this function in combination with muller_code.R
     # read in the file
     f = open("lineage_tracking.txt", "r")
@@ -1984,13 +2016,13 @@ def make_muller(pop_size):
         count += pop_size
     
     # save the dataframe in a csv file
-    os.chdir("C:/Users/Rachel/Documents/Rachel/BS MS Program/muller_plots/")
+    os.chdir(location)
     df.to_csv("lineage_data.csv", index=False)
 
 # Compare Parameters Between Runs of a Particular Experiment
-def compare_para(exp_num):
+def compare_para(exp_num, location):
     # pick out all the correct files from the experiments folder
-    os.chdir("D:/Worms_Life_Sim/experiments/")
+    os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
     
     # create the empty dataframe with all current parameters
@@ -1999,7 +2031,7 @@ def compare_para(exp_num):
 
     # loop through each file from the experiment
     for i in range(len(exp_list)):
-        os.chdir("D:/Worms_Life_Sim/experiments/" + exp_list[i])
+        os.chdir(location + exp_list[i])
         all_my_data = open_pickle(1)
         
         # define some variables
@@ -2019,13 +2051,13 @@ def compare_para(exp_num):
             df = df.drop(col, 1)
 
     # save the dataframe in an excel file
-    os.chdir("D:/Worms_Life_Sim/parameters/")
+    os.chdir(location)
     df.to_excel("exp_" + str(exp_num) + ".xlsx", index=False)
 
 # Combination Graph
-def combine_results(exp_num, param, iteration):
+def combine_results(exp_num, param, iteration, location):
     # pick out all the correct files from the experiments folder
-    os.chdir("D:/Worms_Life_Sim/experiments/")
+    os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
     
     # create the empty lists
@@ -2035,7 +2067,7 @@ def combine_results(exp_num, param, iteration):
     
     # loop through each file from the experiment
     for i in exp_list:
-        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        os.chdir(location + i)
         all_my_data = open_pickle(iteration)
         
         # define some variables
@@ -2069,15 +2101,15 @@ def combine_results(exp_num, param, iteration):
     plt.text(max(param_value), var["dauer_gene"][0]+5, "m = " + str(np.round(m,2)), ha="right")
 
 # Combination Graph Over Time
-def combine_results_over_time(exp_num, param):
+def combine_results_over_time(exp_num, param, location):
     # pick out all the correct files from the experiments folder
-    os.chdir("D:/Worms_Life_Sim/experiments/")
+    os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
     
     # find all the values of the parameter
     param_value = []
     for i in exp_list:
-        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        os.chdir(location + i)
         all_my_data = open_pickle(1)
         param_value.append(all_my_data["par"][param])
     
@@ -2093,7 +2125,7 @@ def combine_results_over_time(exp_num, param):
     
     # loop through each file from the experiment
     for i, j in zip(exp_list, range(len(param_value))):
-        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        os.chdir(location + i)
         time_saved = [int(file.split("_")[-1].split(".")[0]) for file in os.listdir() if file.split("_")[0] == "all"]
         time_saved.sort()
         
@@ -2129,9 +2161,9 @@ def combine_results_over_time(exp_num, param):
     plt.legend(title=param, bbox_to_anchor=(1,1))
 
 # Combination Graph for Travel Direction
-def combine_smell_results(exp_num, param, iteration):
+def combine_smell_results(exp_num, param, iteration, location):
     # pick out all the correct files from the experiments folder
-    os.chdir("D:/Worms_Life_Sim/experiments/")
+    os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
     
     # create the empty lists
@@ -2141,7 +2173,7 @@ def combine_smell_results(exp_num, param, iteration):
     
     # loop through each file from the experiment
     for i in exp_list:
-        os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+        os.chdir(location + i)
         all_my_data = open_pickle(iteration)
         
         # define some variables
@@ -2175,19 +2207,19 @@ def combine_smell_results(exp_num, param, iteration):
     plt.text(max(param_value), 0.7, "m = " + str(np.round(m,3)), ha="right")
 
 # Make a Histogram of Smell Gene Results
-def count_smell_results(which_exp=[4,5,6,7], iteration=30000):
+def count_smell_results(location, which_exp=[4,5,6,7], iteration=30000):
     # create the empty list
     smell_value = []
     
     # loop through the experiments
     for exp in which_exp:
         # pick out all the correct files from the experiments folder
-        os.chdir("D:/Worms_Life_Sim/experiments/")
+        os.chdir(location)
         exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp)]
         
         # loop through each file from the experiment
         for i in exp_list:
-            os.chdir("D:/Worms_Life_Sim/experiments/" + i)
+            os.chdir(location + i)
             all_my_data = open_pickle(iteration)
             
             # define some variables
