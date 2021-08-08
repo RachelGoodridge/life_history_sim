@@ -1530,6 +1530,17 @@ def open_pickle(iteration):
 
 # Fraction of Worms in Dauer by Genotype
 def frac_dauer(p2i, df, var):
+    """ Plot points on a graph showing the fraction of worms that went into dauer by their expressed dauer gene value. Number of worms that went into dauer versus the total number of worms in L3 or dauer.
+    
+    Parameters
+    ----------
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # collect all worms from old files
     combine = np.array([], dtype=np.int64).reshape(0,4)
     for i in range(var["data"]):
@@ -1560,6 +1571,17 @@ def frac_dauer(p2i, df, var):
 
 # Fraction of Worms in Dauer by Genotype vs. Hours Spent
 def frac_dauer_map(p2i, df, var):
+    """ Create a heatmap of the fraction of worms that went into dauer based on their expressed dauer gene values and their numbers of time steps spent in L2d. Only includes worms that chose L2d.
+    
+    Parameters
+    ----------
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # collect all worms from old files
     combine = np.array([], dtype=np.int64).reshape(0,5)
     for i in range(var["data"]):
@@ -1608,6 +1630,17 @@ def frac_dauer_map(p2i, df, var):
 
 # Graph the Winning Genetic Lines in Each Square
 def genetic_line_map(var, df, p2i):
+    """ Create a heatmap of the most common or "winning" genetic lineages in each square of the grid individually, displayed by color for the different lineages.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    """
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
     z = np.zeros((var["grid_len"],var["grid_len"]))*np.nan
