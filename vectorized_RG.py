@@ -1662,6 +1662,19 @@ def genetic_line_map(var, df, p2i):
 
 # Count Dauer Worms by Genetic Line
 def dauer_line(df, p2i, s2i, var):
+    """ Plot points on a graph that indicate the fraction of worms in dauer for each genetic lineage, only including those that make up more than 10% of the population.
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    s2i : a dictionary
+        Translates from worm stage to an index.
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     genes = copy.copy(stats.mode(df[alive, p2i["gene_0"]:], axis=1)[0])
     genes = genes.flatten().astype(int)
@@ -1680,6 +1693,17 @@ def dauer_line(df, p2i, s2i, var):
 
 # Diversity Values of Each Square
 def diversity(var, df, p2i):
+    """ Create a heatmap showing the diversity of genetic lineages, in terms of Shannon index, calculated for each location on the grid. Shannon index values are limited from 0 to 4.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    """
     # the limit of Shannon index values is from 0 to 4
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     x, y = np.mgrid[slice(0,var["grid_len"]), slice(0,var["grid_len"])]
@@ -1703,6 +1727,17 @@ def diversity(var, df, p2i):
 
 # Generation Number
 def which_gen(df, p2i, var):
+    """ Prints out the generation number of the "youngest" worm alive, considering the starting population to be the first generation. Generations are counted by repeatedly collecting groupings of parents. 
+    
+    Parameters
+    ----------
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # gather data on alive, parent 1, and parent 2
     combine = np.array([], dtype=np.int64).reshape(0,4)
     for i in range(var["data"]):
