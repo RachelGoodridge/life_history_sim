@@ -1662,7 +1662,7 @@ def genetic_line_map(var, df, p2i):
 
 # Count Dauer Worms by Genetic Line
 def dauer_line(df, p2i, s2i, var):
-    """ Plot points on a graph that indicate the fraction of worms in dauer for each genetic lineage, only including those that make up more than 10% of the population.
+    """ Plot points on a graph that indicate the fraction of worms in dauer for each genetic lineage, only including those that make up more than 1% of the population.
     
     Parameters
     ----------
@@ -1762,6 +1762,17 @@ def which_gen(df, p2i, var):
 
 # Measure of Dispersal
 def clump(var, df, p2i):
+    """ Create a histogram showing the dispersal distribution of genetic lineages that make up more than 1% of the population. Compared to the dispersal of a random sample of the population (vertical line).
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    df : a 2D numpy array
+        Contains all worms (up to the set max) and their many properties (eg name, gender, etc).
+    p2i : a dictionary
+        Translates from worm property (eg name, gender, etc) to an index in the worm array called "df."
+    """
     # figure out who the genetic ancestor is
     alive = np.array(np.where(df[:,p2i["alive"]]==1))[0]
     genes = copy.copy(stats.mode(df[alive, p2i["gene_0"]:], axis=1)[0])
@@ -1800,6 +1811,13 @@ def clump(var, df, p2i):
     
 # Rate of Food Patch Repopulation
 def patch_repop(var):
+    """ Plot a line graph of the probability of food patch repopulation over the time course of a simulation.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     times = [i for i in range(0,var["iter"]+1,100)]
     y=[]
     for i in range(len(times)):
@@ -1812,7 +1830,20 @@ def patch_repop(var):
     plt.ylabel("Chance of Patch Repopulation")
 
 # Average Value of Dauer Gene Over Time
-def dauer_over_time(var, time_spent, save, all_my_data):    
+def dauer_over_time(var, time_spent, save, all_my_data):
+    """ Create a line graph showing the change over time in the average dauer gene for the population (red) and the average dauer gene for the most common or "winning" lineage (blue) from the last time point.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    time_spent : an integer or float
+        The average amount of time that all worms throughout a particular simulation spend in L2d.
+    save : a list of positive integers
+        The time points at which snapshots of information were taken. Can be gathered by observing the file names.
+    all_my_data : a list of master dictionaries 
+        Creates a list to read in and store the master dictionary from each saved time point in a particular simulation. See "all_dict" in the function "run" above.
+    """
     # define some variables from the last time point
     df = all_my_data[-1]["array"]
     p2i = all_my_data[-1]["p_to_i"]
