@@ -1895,7 +1895,17 @@ def dauer_over_time(var, time_spent, save, all_my_data):
     plt.legend()
 
 # Average Value of Smell Gene Over Time
-def smell_over_time(save, all_my_data):    
+def smell_over_time(save, all_my_data):
+    """ Create a line graph showing the change over time in the average travel gene for the population (red) and the average travel gene for the most common / "winning" lineage (blue) at the last time point.
+    Note that the limits on the y axis only include travel direction genes between 0.25 and 0.75 inclusive.
+    
+    Parameters
+    ----------
+    save : a list of positive integers
+        The time points at which snapshots of information were taken. Can be gathered by observing the file names.
+    all_my_data : a list of master dictionaries 
+        Creates a list to read in and store the master dictionary from each saved time point in a particular simulation. See "all_dict" in the function "run" above.
+    """
     # define some variables from the last time point
     df = all_my_data[-1]["array"]
     p2i = all_my_data[-1]["p_to_i"]
@@ -1948,6 +1958,16 @@ def smell_over_time(save, all_my_data):
 
 # Fraction of Mutants
 def mutation(save, all_my_data):
+    """ Create a line graph showing the fraction of mutant dauer genes (blue) and travel direction genes (red) in the population over time.
+    Note that this only compares the genes of living worms at each time point to the genes of worms in the original population.
+    
+    Parameters
+    ----------
+    save : a list of positive integers
+        The time points at which snapshots of information were taken. Can be gathered by observing the file names.
+    all_my_data : a list of master dictionaries 
+        Creates a list to read in and store the master dictionary from each saved time point in a particular simulation. See "all_dict" in the function "run" above.
+    """
     # define some variables from the first time point
     df = all_my_data[0]["array"]
     p2i = all_my_data[0]["p_to_i"]
@@ -1987,6 +2007,15 @@ def mutation(save, all_my_data):
 
 # Determine the Winning Lineages
 def winner(save, all_my_data):
+    """ Prints out a table listing some statistics for the winning lineage at each saved time point. Statistics include average dauer gene, standard deviation, and fraction of the population. 
+    
+    Parameters
+    ----------
+    save : a list of positive integers
+        The time points at which snapshots of information were taken. Can be gathered by observing the file names.
+    all_my_data : a list of master dictionaries 
+        Creates a list to read in and store the master dictionary from each saved time point in a particular simulation. See "all_dict" in the function "run" above.
+    """
     d = {"Time (hrs)":save, "Winning Line":[], "Avg Dauer Gene":[], "Std Dev":[], "Frac of Pop":[]}
 
     for i in range(len(save)):
@@ -2016,6 +2045,13 @@ def winner(save, all_my_data):
 
 # Lineage Tracking
 def line_track(var):
+    """ Create a line graph showing the number of worms in each genetic lineage over time on a high resolution time scale. Only labels the lineages remaining at the last time point.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # read in the file
     f = open("lineage_tracking.txt", "r")
     f1 = f.readlines()
@@ -2048,6 +2084,14 @@ def line_track(var):
 
 # Allele Tracking
 def allele_track(var):
+    """ Create a line graph showing the number of each allele (rounded to a whole number) present in the population over time on a high resolution time scale.
+    Only labels the alleles remaining at the last time point.
+    
+    Parameters
+    ----------
+    var : a dictionary
+        Lists all the user input parameters and a couple additional parameters.
+    """
     # read in the file
     f = open("allele_tracking.txt", "r")
     f1 = f.readlines()
@@ -2085,6 +2129,15 @@ def allele_track(var):
 
 # Setup for Muller Diagram
 def make_muller(pop_size, location):
+    """ Put together and store a csv file with the information needed to create the muller plots in R.
+    
+    Parameters
+    ----------
+    pop_size : a positive integer
+        The size of the initial population of worms, and thus, the number of unique lineages throughout the simulation.
+    location : a file pathway string
+        The path to the directory where you want to store the data for these muller plots. 
+    """  
     # use this function in combination with muller_code.R
     # read in the file
     f = open("lineage_tracking.txt", "r")
