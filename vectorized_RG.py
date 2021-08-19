@@ -2348,6 +2348,19 @@ def combine_results_over_time(exp_num, param, location):
 
 # Combination Graph for Travel Direction
 def combine_smell_results(exp_num, param, iteration, location):
+    """ Plot the average travel direction gene from the time point specified for each simulation run in the experiment of choice. Plotted against the parameter varied in that experiment.
+    
+    Parameters
+    ----------
+    exp_num : a positive integer
+        The number incidating for which experiment to select. This function will choose all simulations that match this number.
+    param : a string
+        The paramter that was varied in the experiment chosen. Must match one of the parameters initially input into the function called "run" above.
+    iteration : an integer
+        Specifies the time point from which information will be retrieved. There must be a file saved with an information snapshot from that specific time point.
+    location : a file pathway string
+        The path to the directory where all of your simulations for the chosen experiment are stored.
+    """
     # pick out all the correct files from the experiments folder
     os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
@@ -2394,6 +2407,18 @@ def combine_smell_results(exp_num, param, iteration, location):
 
 # Make a Histogram of Smell Gene Results
 def count_smell_results(location, which_exp=[4,5,6,7], iteration=30000):
+    """ Create a histogram of the average travel direction gene from the time point specified for each simulation run in each experiment listed.
+    Can be used to compare initial versus final distributions of travel direction genes (from all simulations) by changing the iteration parameter.
+    
+    Parameters
+    ----------
+    location : a file pathway string
+        The path to the directory where all of your simulations for the chosen experiments are stored. Must all be in the same folder.
+    which_exp : a list of positive integers
+        The list of numbers incidating for which experiments to select. This function will choose all simulations in all experiments that match these numbers.
+    iteration : an integer
+        Specifies the time point from which information will be retrieved. There must be files saved with information snapshots from that specific time point.
+    """
     # create the empty list
     smell_value = []
     
