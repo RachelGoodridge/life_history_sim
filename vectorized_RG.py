@@ -1515,7 +1515,7 @@ def open_pickle(iteration):
     Parameters
     ----------
     iteration : an integer
-        Specifies the time point that information will be retrieved from. There must be a file saved with an information snapshot from that specific time point.
+        Specifies the time point from which information will be retrieved. There must be a file saved with an information snapshot from that specific time point.
     
     Returns
     -------
@@ -2173,6 +2173,16 @@ def make_muller(pop_size, location):
 
 # Compare Parameters Between Runs of a Particular Experiment
 def compare_para(exp_num, location):
+    """ Put together and store an Excel file that is used to compare between input parameters across different simulations within the same experiment.
+    Parameters will appear as the columns in the Excel file and will be removed if all values are consistent. Only parameters that are altered across simulations will remain in the file.
+    
+    Parameters
+    ----------
+    exp_num : a positive integer
+        The number incidating for which experiment to compare parameters. This function will choose all simulations that match this number.
+    location : a file pathway string
+        The path to the directory where all of your simulations for the chosen experiment are stored. Will also save the Excel file here.
+    """
     # pick out all the correct files from the experiments folder
     os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
@@ -2208,6 +2218,19 @@ def compare_para(exp_num, location):
 
 # Combination Graph
 def combine_results(exp_num, param, iteration, location):
+    """ Plot the average dauer gene from the time point specified for each simulation run in the experiment of choice. Plotted against the parameter varied in that experiment.
+    
+    Parameters
+    ----------
+    exp_num : a positive integer
+        The number incidating for which experiment to select. This function will choose all simulations that match this number.
+    param : a string
+        The paramter that was varied in the experiment chosen. Must match one of the parameters initially input into the function called "run" above.
+    iteration : an integer
+        Specifies the time point from which information will be retrieved. There must be a file saved with an information snapshot from that specific time point.
+    location : a file pathway string
+        The path to the directory where all of your simulations for the chosen experiment are stored.
+    """
     # pick out all the correct files from the experiments folder
     os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
@@ -2254,6 +2277,17 @@ def combine_results(exp_num, param, iteration, location):
 
 # Combination Graph Over Time
 def combine_results_over_time(exp_num, param, location):
+    """ Plot the average dauer gene from each time point for each simulation run in the experiment of choice. Colored based on the parameter varied in that experiment.
+    
+    Parameters
+    ----------
+    exp_num : a positive integer
+        The number incidating for which experiment to select. This function will choose all simulations that match this number.
+    param : a string
+        The paramter that was varied in the experiment chosen. Must match one of the parameters initially input into the function called "run" above.
+    location : a file pathway string
+        The path to the directory where all of your simulations for the chosen experiment are stored.
+    """
     # pick out all the correct files from the experiments folder
     os.chdir(location)
     exp_list = [i for i in os.listdir() if i.split("_")[1] == str(exp_num)]
